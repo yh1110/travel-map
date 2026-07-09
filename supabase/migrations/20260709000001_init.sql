@@ -15,6 +15,10 @@ create table public.spots (
 
 create index spots_lat_lng_idx on public.spots (lat, lng);
 
+-- New Supabase defaults do not auto-expose tables to API roles; grant explicitly.
+grant select on public.spots to anon, authenticated;
+grant insert on public.spots to authenticated;
+
 alter table public.spots enable row level security;
 
 create policy "spots are viewable by everyone"
