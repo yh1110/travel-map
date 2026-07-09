@@ -30,9 +30,15 @@ create policy "authenticated users can insert their own spots"
   to authenticated
   with check (auth.uid() = user_id);
 
--- public bucket for spot photos
-insert into storage.buckets (id, name, public)
-values ('photos', 'photos', true);
+-- public bucket for spot photos (image-only, capped size)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'photos',
+  'photos',
+  true,
+  10485760, -- 10 MiB
+  array['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+);
 
 create policy "photos are publicly readable"
   on storage.objects for select

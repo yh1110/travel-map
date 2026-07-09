@@ -11,28 +11,13 @@ import { Camera, Map as MapLibreMap } from "@maplibre/maplibre-react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { SpotMarker } from "../components/SpotMarker";
+import { directionLabel, formatTakenAt } from "../lib/format";
 import { fetchSpot, type Spot } from "../lib/spots";
 import { resolvePhotoUrl } from "../lib/supabase";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, MAP_STYLE_URL } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SpotDetail">;
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return "不明";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "不明";
-  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-}
-
-const DIRECTION_LABELS = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"];
-
-function directionLabel(bearing: number): string {
-  return DIRECTION_LABELS[Math.round(bearing / 45) % 8];
-}
 
 /** "Stand here, look this way, and this is what you see." */
 export function SpotDetailScreen({ route }: Props) {
@@ -82,7 +67,7 @@ export function SpotDetailScreen({ route }: Props) {
         <Text style={styles.meta}>
           撮影方向: {Math.round(spot.bearing)}°（{directionLabel(spot.bearing)}向き）
         </Text>
-        <Text style={styles.meta}>撮影日時: {formatDateTime(spot.taken_at)}</Text>
+        <Text style={styles.meta}>撮影日時: {formatTakenAt(spot.taken_at)}</Text>
         <Text style={styles.meta}>
           地点: {spot.lat.toFixed(5)}, {spot.lng.toFixed(5)}
         </Text>

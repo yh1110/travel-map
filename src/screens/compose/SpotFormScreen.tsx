@@ -16,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { formatDateTime, parseExifDate } from "../../lib/format";
 import { createSpot } from "../../lib/spots";
 import type { RootStackParamList } from "../../navigation/types";
 import { colors } from "../../theme";
@@ -25,33 +26,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "SpotForm">;
 interface PickedPhoto {
   uri: string;
   mimeType: string;
+  /** From EXIF when available; null means the user picked a photo without one. */
   takenAt: Date | null;
-}
-
-/** Parses EXIF "YYYY:MM:DD HH:MM:SS" into a Date (device-local time). */
-function parseExifDate(exif: Record<string, unknown> | null | undefined): Date | null {
-  const raw = exif?.["DateTimeOriginal"] ?? exif?.["DateTime"];
-  if (typeof raw !== "string") return null;
-  const match = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
-  if (!match) return null;
-  const [, y, mo, d, h, mi, s] = match;
-  const date = new Date(
-    Number(y),
-    Number(mo) - 1,
-    Number(d),
-    Number(h),
-    Number(mi),
-    Number(s),
-  );
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function formatTakenAt(date: Date | null): string {
-  if (!date) return "不明（写真から取得できませんでした）";
-  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
 }
 
 /**
@@ -69,7 +45,7 @@ export function SpotFormScreen({ navigation, route }: Props) {
     setPhoto({
       uri: asset.uri,
       mimeType: asset.mimeType ?? "image/jpeg",
-      takenAt: parseExifDate(asset.exif) ?? new Date(),
+      takenAt: parseExifDate(asset.exif),
     });
   }, []);
 
@@ -168,7 +144,10 @@ export function SpotFormScreen({ navigation, route }: Props) {
           </Text>
           <Text style={styles.metaText}>方向: {bearing}°</Text>
           <Text style={styles.metaText}>
-            撮影日時: {formatTakenAt(photo?.takenAt ?? null)}
+            撮影日時:{" "}
+            {photo?.takenAt
+              ? formatDateTime(photo.takenAt)
+              : "不明（写真から取得できませんでした）"}
           </Text>
         </View>
 

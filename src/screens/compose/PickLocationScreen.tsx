@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   Camera,
   type CameraRef,
@@ -25,12 +25,21 @@ export function PickLocationScreen({ navigation }: Props) {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [locating, setLocating] = useState(false);
+  const [locationGranted, setLocationGranted] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationGranted(status === "granted");
+    })();
+  }, []);
 
   const moveToCurrentLocation = useCallback(async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-    setLocating(true);
     try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
+      setLocationGranted(true);
+      setLocating(true);
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
@@ -39,15 +48,27 @@ export function PickLocationScreen({ navigation }: Props) {
         zoom: 16,
         duration: 600,
       });
+    } catch (e) {
+      Alert.alert(
+        "現在地を取得できませんでした",
+        e instanceof Error ? e.message : String(e),
+      );
     } finally {
       setLocating(false);
     }
   }, []);
 
   const confirmPoint = useCallback(async () => {
-    const center = await mapRef.current?.getCenter();
-    if (!center) return;
-    navigation.navigate("SetBearing", { lat: center[1], lng: center[0] });
+    try {
+      const center = await mapRef.current?.getCenter();
+      if (!center) return;
+      navigation.navigate("SetBearing", { lat: center[1], lng: center[0] });
+    } catch (e) {
+      Alert.alert(
+        "地点を取得できませんでした",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
   }, [navigation]);
 
   return (
@@ -61,7 +82,7 @@ export function PickLocationScreen({ navigation }: Props) {
         attributionPosition={{ bottom: 8, left: 8 }}
       >
         <Camera ref={cameraRef} initialViewState={INITIAL_VIEW} />
-        <UserLocation />
+        {locationGranted && <UserLocation />}
       </MapLibreMap>
 
       {/* Fixed crosshair marking the shooting point (always the map center) */}

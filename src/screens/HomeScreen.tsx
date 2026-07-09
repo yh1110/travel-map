@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -58,19 +59,26 @@ export function HomeScreen({ navigation }: Props) {
   }, []);
 
   const goToCurrentLocation = useCallback(async () => {
-    if (!locationGranted) {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      setLocationGranted(true);
+    try {
+      if (!locationGranted) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        setLocationGranted(true);
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      cameraRef.current?.easeTo({
+        center: [position.coords.longitude, position.coords.latitude],
+        zoom: 13,
+        duration: 800,
+      });
+    } catch (e) {
+      Alert.alert(
+        "現在地を取得できませんでした",
+        e instanceof Error ? e.message : String(e),
+      );
     }
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    cameraRef.current?.easeTo({
-      center: [position.coords.longitude, position.coords.latitude],
-      zoom: 13,
-      duration: 800,
-    });
   }, [locationGranted]);
 
   const openSpot = useCallback(

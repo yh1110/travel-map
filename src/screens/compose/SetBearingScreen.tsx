@@ -1,11 +1,12 @@
-import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Slider from "@react-native-community/slider";
 import { Camera, Map as MapLibreMap } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { directionLabel } from "../../lib/format";
 import type { RootStackParamList } from "../../navigation/types";
 import { colors, MAP_STYLE_URL } from "../../theme";
 
@@ -20,21 +21,45 @@ export function SetBearingScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [bearing, setBearing] = useState(0);
   const [capturingHeading, setCapturingHeading] = useState(false);
+  const headingSubscription = useRef<Location.LocationSubscription | null>(null);
+
+  // Drop any in-flight heading subscription when leaving the screen.
+  useEffect(() => {
+    return () => {
+      headingSubscription.current?.remove();
+      headingSubscription.current = null;
+    };
+  }, []);
 
   const captureDeviceHeading = useCallback(async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
-    setCapturingHeading(true);
     try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
+      setCapturingHeading(true);
+      let captured = false;
+      // The callback can fire before watchHeadingAsync resolves, so signal
+      // through flags/refs instead of the (not yet assigned) subscription.
       const subscription = await Location.watchHeadingAsync((heading) => {
+        if (captured) return;
+        captured = true;
         const value =
           heading.trueHeading >= 0 ? heading.trueHeading : heading.magHeading;
-        setBearing(Math.round(((value % 360) + 360) % 360));
-        subscription.remove();
+        setBearing(Math.round(((value % 360) + 360) % 360) % 360);
+        headingSubscription.current?.remove();
+        headingSubscription.current = null;
         setCapturingHeading(false);
       });
-    } catch {
+      if (captured) {
+        subscription.remove();
+      } else {
+        headingSubscription.current = subscription;
+      }
+    } catch (e) {
       setCapturingHeading(false);
+      Alert.alert(
+        "端末の向きを取得できませんでした",
+        e instanceof Error ? e.message : String(e),
+      );
     }
   }, []);
 
@@ -100,13 +125,6 @@ export function SetBearingScreen({ navigation, route }: Props) {
       </View>
     </View>
   );
-}
-
-const DIRECTION_LABELS = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"];
-
-function directionLabel(bearing: number): string {
-  const index = Math.round(bearing / 45) % 8;
-  return DIRECTION_LABELS[index];
 }
 
 const styles = StyleSheet.create({
