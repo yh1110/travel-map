@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Slider from "@react-native-community/slider";
-import { Camera, Map as MapLibreMap } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppMap } from "../../components/AppMap";
 import { directionLabel } from "../../lib/format";
 import type { RootStackParamList } from "../../navigation/types";
-import { colors, MAP_STYLE_URL } from "../../theme";
+import { colors } from "../../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SetBearing">;
 
@@ -70,16 +70,18 @@ export function SetBearingScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.mapWrap}>
-        <MapLibreMap
+        <AppMap
           style={styles.map}
-          mapStyle={MAP_STYLE_URL}
-          dragPan={false}
-          touchRotate={false}
-          touchPitch={false}
-          attributionPosition={{ bottom: 8, left: 8 }}
-        >
-          <Camera initialViewState={{ center: [lng, lat], zoom: 15.5 }} />
-        </MapLibreMap>
+          initialRegion={{
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.008,
+            longitudeDelta: 0.008,
+          }}
+          scrollEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+        />
 
         {/* Direction preview overlaid on the shooting point (map center) */}
         <View pointerEvents="none" style={styles.overlay}>
@@ -206,25 +208,26 @@ const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 24,
+    borderColor: colors.button,
+    borderRadius: 16,
     paddingVertical: 12,
     alignItems: "center",
+    backgroundColor: colors.background,
   },
   secondaryText: {
-    color: colors.primary,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 24,
+    backgroundColor: colors.button,
+    borderRadius: 16,
     paddingVertical: 12,
     alignItems: "center",
   },
   confirmText: {
-    color: "#FFFFFF",
+    color: colors.buttonIcon,
     fontSize: 14,
     fontWeight: "700",
   },

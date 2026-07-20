@@ -7,26 +7,20 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  Camera,
-  type CameraRef,
-  Map as MapLibreMap,
-  UserLocation,
-} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SpotMarker } from "../components/SpotMarker";
+import { AppMap, type AppMapRef } from "../components/AppMap";
 import { fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, INITIAL_VIEW, MAP_STYLE_URL } from "../theme";
+import { colors, INITIAL_REGION } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const cameraRef = useRef<CameraRef>(null);
+  const mapRef = useRef<AppMapRef>(null);
   const [spots, setSpots] = useState<Spot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +62,12 @@ export function HomeScreen({ navigation }: Props) {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      cameraRef.current?.easeTo({
-        center: [position.coords.longitude, position.coords.latitude],
-        zoom: 13,
-        duration: 800,
-      });
+      mapRef.current?.animateToLocation(
+        position.coords.latitude,
+        position.coords.longitude,
+        13,
+        800,
+      );
     } catch (e) {
       Alert.alert(
         "現在地を取得できませんでした",
@@ -90,20 +85,14 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <MapLibreMap
+      <AppMap
+        ref={mapRef}
         style={styles.map}
-        mapStyle={MAP_STYLE_URL}
-        // Keep the map north-up so marker wedges (rotated by bearing) stay correct.
-        touchRotate={false}
-        touchPitch={false}
-        attributionPosition={{ bottom: 8, left: 8 }}
-      >
-        <Camera ref={cameraRef} initialViewState={INITIAL_VIEW} />
-        {locationGranted && <UserLocation />}
-        {spots.map((spot) => (
-          <SpotMarker key={spot.id} spot={spot} onPress={openSpot} />
-        ))}
-      </MapLibreMap>
+        initialRegion={INITIAL_REGION}
+        spots={spots}
+        onSpotPress={openSpot}
+        showsUserLocation={locationGranted}
+      />
 
       {loading && (
         <View style={[styles.banner, { top: insets.top + 12 }]}>
@@ -186,8 +175,8 @@ const styles = StyleSheet.create({
     right: 16,
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.background,
+    borderRadius: 16,
+    backgroundColor: colors.button,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -198,14 +187,14 @@ const styles = StyleSheet.create({
   },
   locateIcon: {
     fontSize: 20,
-    color: colors.primary,
+    color: colors.buttonIcon,
     transform: [{ rotate: "-45deg" }],
   },
   postButton: {
     position: "absolute",
     alignSelf: "center",
-    backgroundColor: colors.primary,
-    borderRadius: 28,
+    backgroundColor: colors.button,
+    borderRadius: 16,
     paddingHorizontal: 24,
     paddingVertical: 14,
     shadowColor: "#000",
@@ -215,7 +204,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   postButtonText: {
-    color: "#FFFFFF",
+    color: colors.buttonIcon,
     fontSize: 16,
     fontWeight: "700",
   },
