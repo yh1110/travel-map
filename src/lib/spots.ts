@@ -6,20 +6,15 @@ export interface Spot {
   id: string;
   created_at: string;
   user_id: string | null;
-  title: string;
   lat: number;
   lng: number;
-  /** Shooting direction in degrees clockwise from true north (0-360). */
-  bearing: number;
   photo_path: string;
   taken_at: string | null;
 }
 
 export interface NewSpot {
-  title: string;
   lat: number;
   lng: number;
-  bearing: number;
   takenAt: Date | null;
   photo: {
     uri: string;
@@ -99,10 +94,8 @@ export async function createSpot(input: NewSpot): Promise<Spot> {
     .from("spots")
     .insert({
       user_id: userId,
-      title: input.title,
       lat: input.lat,
       lng: input.lng,
-      bearing: input.bearing,
       photo_path: photoPath,
       taken_at: input.takenAt ? input.takenAt.toISOString() : null,
     })
