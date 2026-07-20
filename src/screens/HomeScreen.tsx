@@ -98,6 +98,7 @@ export function HomeScreen({ navigation }: Props) {
     if (result.canceled) return;
 
     const asset = result.assets[0];
+    if (!asset) return;
 
     const { status: locStatus } =
       await Location.requestForegroundPermissionsAsync();
