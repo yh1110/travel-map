@@ -10,9 +10,11 @@ export const colors = {
   danger: "#D93025",
   wedge: "rgba(26, 115, 232, 0.85)",
   markerBorder: "#FFFFFF",
+  button: "#15171B",
+  buttonIcon: "#FFFFFF",
 } as const;
 
-export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
 
 /** Roughly centers Japan on first launch. */
 export const INITIAL_VIEW = {
