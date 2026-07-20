@@ -21,3 +21,11 @@ export const INITIAL_VIEW = {
   center: [137.5, 37.5] as [number, number],
   zoom: 4.2,
 };
+
+/** Same region in react-native-maps format (used by AppMap). */
+export const INITIAL_REGION = {
+  latitude: 37.5,
+  longitude: 137.5,
+  latitudeDelta: 20,
+  longitudeDelta: 20,
+};
