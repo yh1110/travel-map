@@ -10,7 +10,7 @@ import {
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { AppMap } from "../components/AppMap";
-import { directionLabel, formatTakenAt } from "../lib/format";
+import { formatTakenAt } from "../lib/format";
 import { fetchSpot, type Spot } from "../lib/spots";
 import { resolvePhotoUrl } from "../lib/supabase";
 import type { RootStackParamList } from "../navigation/types";
@@ -18,7 +18,6 @@ import { colors } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SpotDetail">;
 
-/** "Stand here, look this way, and this is what you see." */
 export function SpotDetailScreen({ route }: Props) {
   const { spotId } = route.params;
   const [spot, setSpot] = useState<Spot | null>(null);
@@ -62,16 +61,12 @@ export function SpotDetailScreen({ route }: Props) {
         style={styles.photo}
       />
       <View style={styles.body}>
-        <Text style={styles.title}>{spot.title}</Text>
-        <Text style={styles.meta}>
-          撮影方向: {Math.round(spot.bearing)}°（{directionLabel(spot.bearing)}向き）
-        </Text>
-        <Text style={styles.meta}>撮影日時: {formatTakenAt(spot.taken_at)}</Text>
+        <Text style={styles.takenAt}>{formatTakenAt(spot.taken_at)}</Text>
         <Text style={styles.meta}>
           地点: {spot.lat.toFixed(5)}, {spot.lng.toFixed(5)}
         </Text>
 
-        <Text style={styles.sectionLabel}>ここに立つと、この向きに見えます</Text>
+        <Text style={styles.sectionLabel}>撮影地点</Text>
         <View style={styles.mapWrap}>
           <AppMap
             style={styles.map}
@@ -120,7 +115,7 @@ const styles = StyleSheet.create({
   body: {
     padding: 20,
   },
-  title: {
+  takenAt: {
     fontSize: 22,
     fontWeight: "700",
     color: colors.textPrimary,

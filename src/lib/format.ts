@@ -1,11 +1,3 @@
-const DIRECTION_LABELS = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"];
-
-/** Returns the Japanese 8-point compass label for a bearing in degrees. */
-export function directionLabel(bearing: number): string {
-  const normalized = ((bearing % 360) + 360) % 360;
-  return DIRECTION_LABELS[Math.round(normalized / 45) % 8];
-}
-
 /** Formats a Date as "YYYY/M/D HH:mm" in device-local time. */
 export function formatDateTime(date: Date): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date

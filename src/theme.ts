@@ -8,7 +8,6 @@ export const colors = {
   textSecondary: "#5F6368",
   border: "#E3E5E8",
   danger: "#D93025",
-  wedge: "rgba(26, 115, 232, 0.85)",
   markerBorder: "#FFFFFF",
   button: "#15171B",
   buttonIcon: "#FFFFFF",

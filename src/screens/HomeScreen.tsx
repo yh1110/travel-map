@@ -7,12 +7,14 @@ import {
   Text,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppMap, type AppMapRef } from "../components/AppMap";
-import { fetchSpots, type Spot } from "../lib/spots";
+import { parseExifDate } from "../lib/format";
+import { createSpot, fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, INITIAL_REGION } from "../theme";
 
@@ -25,6 +27,7 @@ export function HomeScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
+  const [posting, setPosting] = useState(false);
 
   const loadSpots = useCallback(async () => {
     try {
@@ -37,7 +40,6 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, []);
 
-  // Refetch whenever the screen regains focus (e.g. after posting a spot).
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       void loadSpots();
@@ -83,6 +85,58 @@ export function HomeScreen({ navigation }: Props) {
     [navigation],
   );
 
+  const handlePost = useCallback(async () => {
+    const { status: camStatus } =
+      await ImagePicker.requestCameraPermissionsAsync();
+    if (camStatus !== "granted") return;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      exif: true,
+    });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    if (!asset) return;
+
+    const { status: locStatus } =
+      await Location.requestForegroundPermissionsAsync();
+    if (locStatus !== "granted") return;
+
+    let position: Location.LocationObject;
+    try {
+      position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+    } catch (e) {
+      Alert.alert(
+        "現在地を取得できませんでした",
+        e instanceof Error ? e.message : String(e),
+      );
+      return;
+    }
+
+    setPosting(true);
+    try {
+      await createSpot({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        takenAt: parseExifDate(asset.exif) ?? new Date(),
+        photo: { uri: asset.uri, mimeType: asset.mimeType ?? "image/jpeg" },
+      });
+      Alert.alert("投稿しました！", "地図にあなたの景色が追加されました。");
+      void loadSpots();
+    } catch (e) {
+      Alert.alert(
+        "投稿に失敗しました",
+        e instanceof Error ? e.message : String(e),
+      );
+    } finally {
+      setPosting(false);
+    }
+  }, [loadSpots]);
+
   return (
     <View style={styles.container}>
       <AppMap
@@ -116,6 +170,13 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       )}
 
+      {posting && (
+        <View style={styles.postingOverlay}>
+          <ActivityIndicator color={colors.buttonIcon} size="large" />
+          <Text style={styles.postingText}>投稿中…</Text>
+        </View>
+      )}
+
       <Pressable
         style={[styles.locateButton, { bottom: insets.bottom + 96 }]}
         onPress={goToCurrentLocation}
@@ -125,8 +186,15 @@ export function HomeScreen({ navigation }: Props) {
       </Pressable>
 
       <Pressable
-        style={[styles.postButton, { bottom: insets.bottom + 24 }]}
-        onPress={() => navigation.navigate("PickLocation")}
+        style={[
+          styles.postButton,
+          { bottom: insets.bottom + 24 },
+          posting && styles.postButtonDisabled,
+        ]}
+        onPress={() => {
+          void handlePost();
+        }}
+        disabled={posting}
         accessibilityLabel="景色を投稿"
       >
         <Text style={styles.postButtonText}>＋ この景色を投稿</Text>
@@ -170,6 +238,18 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 13,
   },
+  postingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  postingText: {
+    color: colors.buttonIcon,
+    fontSize: 16,
+    fontWeight: "600",
+  },
   locateButton: {
     position: "absolute",
     right: 16,
@@ -202,6 +282,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
+  },
+  postButtonDisabled: {
+    opacity: 0.5,
   },
   postButtonText: {
     color: colors.buttonIcon,
