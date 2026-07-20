@@ -14,7 +14,7 @@ export const colors = {
   buttonIcon: "#FFFFFF",
 } as const;
 
-export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/bright";
 
 /** Roughly centers Japan on first launch. */
 export const INITIAL_VIEW = {
