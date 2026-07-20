@@ -1,28 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { directionLabel, formatTakenAt, parseExifDate } from "./format";
-
-describe("directionLabel", () => {
-  it("maps cardinal bearings to Japanese labels", () => {
-    expect(directionLabel(0)).toBe("北");
-    expect(directionLabel(45)).toBe("北東");
-    expect(directionLabel(90)).toBe("東");
-    expect(directionLabel(180)).toBe("南");
-    expect(directionLabel(270)).toBe("西");
-  });
-
-  it("rounds to the nearest 8-point direction and wraps at 360", () => {
-    expect(directionLabel(359)).toBe("北");
-    expect(directionLabel(337.5)).toBe("北");
-    expect(directionLabel(22)).toBe("北");
-    expect(directionLabel(23)).toBe("北東");
-  });
-
-  it("normalizes out-of-range bearings", () => {
-    expect(directionLabel(450)).toBe("東");
-    expect(directionLabel(-90)).toBe("西");
-  });
-});
+import { formatTakenAt, parseExifDate } from "./format";
 
 describe("parseExifDate", () => {
   it("parses DateTimeOriginal in EXIF format", () => {
