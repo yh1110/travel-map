@@ -69,6 +69,7 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
       ref={mapRef}
       style={[styles.map, style]}
       provider={PROVIDER_DEFAULT}
+      mapType="mutedStandard"
       initialRegion={initialRegion}
       showsUserLocation={showsUserLocation}
       scrollEnabled={scrollEnabled}
