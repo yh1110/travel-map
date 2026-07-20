@@ -1,18 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  Camera,
-  type CameraRef,
-  Map as MapLibreMap,
-  type MapRef,
-  UserLocation,
-} from "@maplibre/maplibre-react-native";
+import MapView, { PROVIDER_GOOGLE, type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { RootStackParamList } from "../../navigation/types";
-import { colors, INITIAL_VIEW, MAP_STYLE_URL } from "../../theme";
+import { colors, INITIAL_REGION } from "../../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PickLocation">;
 
@@ -22,10 +16,10 @@ type Props = NativeStackScreenProps<RootStackParamList, "PickLocation">;
  */
 export function PickLocationScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapRef>(null);
-  const cameraRef = useRef<CameraRef>(null);
+  const mapRef = useRef<MapView>(null);
   const [locating, setLocating] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
+  const [currentRegion, setCurrentRegion] = useState<Region>(INITIAL_REGION);
 
   useEffect(() => {
     void (async () => {
@@ -43,11 +37,16 @@ export function PickLocationScreen({ navigation }: Props) {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      cameraRef.current?.easeTo({
-        center: [position.coords.longitude, position.coords.latitude],
-        zoom: 16,
-        duration: 600,
-      });
+      mapRef.current?.animateCamera(
+        {
+          center: {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          },
+          zoom: 16,
+        },
+        { duration: 600 },
+      );
     } catch (e) {
       Alert.alert(
         "現在地を取得できませんでした",
@@ -58,32 +57,25 @@ export function PickLocationScreen({ navigation }: Props) {
     }
   }, []);
 
-  const confirmPoint = useCallback(async () => {
-    try {
-      const center = await mapRef.current?.getCenter();
-      if (!center) return;
-      navigation.navigate("SetBearing", { lat: center[1], lng: center[0] });
-    } catch (e) {
-      Alert.alert(
-        "地点を取得できませんでした",
-        e instanceof Error ? e.message : String(e),
-      );
-    }
-  }, [navigation]);
+  const confirmPoint = useCallback(() => {
+    navigation.navigate("SetBearing", {
+      lat: currentRegion.latitude,
+      lng: currentRegion.longitude,
+    });
+  }, [navigation, currentRegion]);
 
   return (
     <View style={styles.container}>
-      <MapLibreMap
+      <MapView
         ref={mapRef}
         style={styles.map}
-        mapStyle={MAP_STYLE_URL}
-        touchRotate={false}
-        touchPitch={false}
-        attributionPosition={{ bottom: 8, left: 8 }}
-      >
-        <Camera ref={cameraRef} initialViewState={INITIAL_VIEW} />
-        {locationGranted && <UserLocation />}
-      </MapLibreMap>
+        provider={PROVIDER_GOOGLE}
+        initialRegion={INITIAL_REGION}
+        showsUserLocation={locationGranted}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        onRegionChangeComplete={setCurrentRegion}
+      />
 
       {/* Fixed crosshair marking the shooting point (always the map center) */}
       <View pointerEvents="none" style={styles.crosshairWrap}>
