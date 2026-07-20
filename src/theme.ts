@@ -12,10 +12,10 @@ export const colors = {
   markerBorder: "#FFFFFF",
 } as const;
 
-/** Roughly centers Japan on first launch. (latitudeDelta ≈ zoom 4.2) */
-export const INITIAL_REGION = {
-  latitude: 37.5,
-  longitude: 137.5,
-  latitudeDelta: 20,
-  longitudeDelta: 20,
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+
+/** Roughly centers Japan on first launch. */
+export const INITIAL_VIEW = {
+  center: [137.5, 37.5] as [number, number],
+  zoom: 4.2,
 };

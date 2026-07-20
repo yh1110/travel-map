@@ -7,7 +7,12 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
+import {
+  Camera,
+  type CameraRef,
+  Map as MapLibreMap,
+  UserLocation,
+} from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,13 +20,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SpotMarker } from "../components/SpotMarker";
 import { fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, INITIAL_REGION } from "../theme";
+import { colors, INITIAL_VIEW, MAP_STYLE_URL } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const [spots, setSpots] = useState<Spot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,16 +68,11 @@ export function HomeScreen({ navigation }: Props) {
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      mapRef.current?.animateCamera(
-        {
-          center: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          },
-          zoom: 13,
-        },
-        { duration: 800 },
-      );
+      cameraRef.current?.easeTo({
+        center: [position.coords.longitude, position.coords.latitude],
+        zoom: 13,
+        duration: 800,
+      });
     } catch (e) {
       Alert.alert(
         "現在地を取得できませんでした",
@@ -90,19 +90,20 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
+      <MapLibreMap
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={INITIAL_REGION}
-        showsUserLocation={locationGranted}
-        rotateEnabled={false}
-        pitchEnabled={false}
+        mapStyle={MAP_STYLE_URL}
+        // Keep the map north-up so marker wedges (rotated by bearing) stay correct.
+        touchRotate={false}
+        touchPitch={false}
+        attributionPosition={{ bottom: 8, left: 8 }}
       >
+        <Camera ref={cameraRef} initialViewState={INITIAL_VIEW} />
+        {locationGranted && <UserLocation />}
         {spots.map((spot) => (
           <SpotMarker key={spot.id} spot={spot} onPress={openSpot} />
         ))}
-      </MapView>
+      </MapLibreMap>
 
       {loading && (
         <View style={[styles.banner, { top: insets.top + 12 }]}>

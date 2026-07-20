@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Image, StyleSheet, View } from "react-native";
-import { Marker } from "react-native-maps";
+import { Marker } from "@maplibre/maplibre-react-native";
 
 import type { Spot } from "../lib/spots";
 import { resolvePhotoUrl } from "../lib/supabase";
@@ -23,9 +23,10 @@ interface SpotMarkerProps {
 function SpotMarkerComponent({ spot, onPress }: SpotMarkerProps) {
   return (
     <Marker
-      coordinate={{ latitude: spot.lat, longitude: spot.lng }}
+      id={spot.id}
+      lngLat={[spot.lng, spot.lat]}
+      anchor="center"
       onPress={() => onPress(spot)}
-      anchor={{ x: 0.5, y: 0.5 }}
     >
       <View style={styles.box}>
         <View
