@@ -7,15 +7,14 @@ import {
   Text,
   View,
 } from "react-native";
-import { Camera, Map as MapLibreMap } from "@maplibre/maplibre-react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 
-import { SpotMarker } from "../components/SpotMarker";
+import { AppMap } from "../components/AppMap";
 import { directionLabel, formatTakenAt } from "../lib/format";
 import { fetchSpot, type Spot } from "../lib/spots";
 import { resolvePhotoUrl } from "../lib/supabase";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, MAP_STYLE_URL } from "../theme";
+import { colors } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SpotDetail">;
 
@@ -74,19 +73,20 @@ export function SpotDetailScreen({ route }: Props) {
 
         <Text style={styles.sectionLabel}>ここに立つと、この向きに見えます</Text>
         <View style={styles.mapWrap}>
-          <MapLibreMap
+          <AppMap
             style={styles.map}
-            mapStyle={MAP_STYLE_URL}
-            dragPan={false}
-            touchZoom={false}
-            doubleTapZoom={false}
-            touchRotate={false}
-            touchPitch={false}
-            attributionPosition={{ bottom: 4, left: 4 }}
-          >
-            <Camera initialViewState={{ center: [spot.lng, spot.lat], zoom: 14.5 }} />
-            <SpotMarker spot={spot} onPress={() => {}} />
-          </MapLibreMap>
+            initialRegion={{
+              latitude: spot.lat,
+              longitude: spot.lng,
+              latitudeDelta: 0.015,
+              longitudeDelta: 0.015,
+            }}
+            spots={[spot]}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+          />
         </View>
       </View>
     </ScrollView>
