@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Slider from "@react-native-community/slider";
-import { Camera, Map as MapLibreMap } from "@maplibre/maplibre-react-native";
+import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { directionLabel } from "../../lib/format";
 import type { RootStackParamList } from "../../navigation/types";
-import { colors, MAP_STYLE_URL } from "../../theme";
+import { colors } from "../../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SetBearing">;
 
@@ -70,16 +70,19 @@ export function SetBearingScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.mapWrap}>
-        <MapLibreMap
+        <MapView
           style={styles.map}
-          mapStyle={MAP_STYLE_URL}
-          dragPan={false}
-          touchRotate={false}
-          touchPitch={false}
-          attributionPosition={{ bottom: 8, left: 8 }}
-        >
-          <Camera initialViewState={{ center: [lng, lat], zoom: 15.5 }} />
-        </MapLibreMap>
+          provider={PROVIDER_GOOGLE}
+          initialRegion={{
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.008,
+            longitudeDelta: 0.008,
+          }}
+          scrollEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+        />
 
         {/* Direction preview overlaid on the shooting point (map center) */}
         <View pointerEvents="none" style={styles.overlay}>

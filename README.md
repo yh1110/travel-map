@@ -6,7 +6,7 @@
 ## 構成
 
 - **アプリ**: Expo (React Native) + TypeScript
-- **地図**: [MapLibre React Native](https://github.com/maplibre/maplibre-react-native) + [OpenFreeMap](https://openfreemap.org)（API キー不要）
+- **地図**: [react-native-maps](https://github.com/react-native-maps/react-native-maps) + Google Maps
 - **バックエンド**: Supabase（ローカル開発は Supabase CLI + Docker）
 
 ### 画面
@@ -41,14 +41,21 @@ npx supabase start
 cp .env.example .env
 ```
 
-`npx supabase status` の出力から `API URL` と `anon key` を `.env` に設定する。
+`.env` に以下を設定する:
 
-- シミュレータ: `http://127.0.0.1:54321` のままで OK
+**Supabase**（`npx supabase status` の出力から取得）:
+- シミュレータ: `EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` のままで OK
 - 実機: `127.0.0.1` を Mac の LAN IP（例 `http://192.168.x.x:54321`）に置き換える
+
+**Google Maps API キー**:
+1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを選択（または新規作成）
+2. 「APIとサービス」→「ライブラリ」から **Maps SDK for iOS** と **Maps SDK for Android** を有効化
+3. 「APIとサービス」→「認証情報」→「認証情報を作成」→「APIキー」でキーを発行
+4. 発行したキーを `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` に設定
 
 ### 4. アプリ起動
 
-MapLibre はネイティブモジュールのため **Expo Go では動かない**。dev build で起動する:
+react-native-maps はネイティブモジュールのため **Expo Go では動かない**。dev build で起動する:
 
 ```sh
 npx expo run:ios      # または run:android
