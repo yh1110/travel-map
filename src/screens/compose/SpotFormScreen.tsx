@@ -211,13 +211,14 @@ const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 24,
+    borderColor: colors.button,
+    borderRadius: 16,
     paddingVertical: 12,
     alignItems: "center",
+    backgroundColor: colors.background,
   },
   secondaryText: {
-    color: colors.primary,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -243,8 +244,8 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 28,
-    backgroundColor: colors.primary,
-    borderRadius: 28,
+    backgroundColor: colors.button,
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
   },
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitText: {
-    color: "#FFFFFF",
+    color: colors.buttonIcon,
     fontSize: 16,
     fontWeight: "700",
   },
