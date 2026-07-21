@@ -171,8 +171,12 @@ function SpotSheetContent({
     // comes out narrower than the screen once height gets capped - center
     // it instead of stretching/cropping it to fill the full width.
     const width = Math.min(height * aspectRatio, screenWidth);
+    // Center in the full viewport (both axes), Google-Maps-photo-viewer style:
+    // the sharp photo floats in the middle with the blurred copy filling every
+    // edge around it, rather than being pinned to the top over a dark slab.
     const x = (screenWidth - width) / 2;
-    return { x, y: 0, width, height, borderRadius: 0 };
+    const y = (screenHeight - height) / 2;
+    return { x, y, width, height, borderRadius: 0 };
   }, [aspectRatio]);
 
   const collapsedStyle = useAnimatedStyle(() => ({
@@ -212,11 +216,7 @@ function SpotSheetContent({
         style={[StyleSheet.absoluteFill, expandedStyle]}
         pointerEvents={expanded ? "box-none" : "none"}
       >
-        <SpotSheetExpanded
-          spot={spot}
-          onCollapse={onCollapse}
-          heroHeight={expandedFrame.height}
-        />
+        <SpotSheetExpanded spot={spot} onCollapse={onCollapse} />
       </Animated.View>
     </View>
   );
@@ -287,7 +287,10 @@ const styles = StyleSheet.create({
   },
   backdropTint: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(20,16,14,0.55)",
+    // Light enough that the blurred photo still reads as the photo (not a
+    // near-black slab), dark enough that the sharp centered photo and the
+    // white chrome/text on top of it stay legible.
+    backgroundColor: "rgba(18,14,12,0.42)",
   },
   background: {
     shadowColor: "#000",

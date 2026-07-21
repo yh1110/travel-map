@@ -1,4 +1,4 @@
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, {
   Defs,
   LinearGradient,
@@ -74,41 +74,29 @@ function ClockIcon({ color }: { color: string }) {
 interface SpotSheetExpandedProps {
   spot: Spot;
   onCollapse: () => void;
-  // The shared SpotHeroPhoto's target height in this layout (varies by the
-  // photo's own aspect ratio) - the darkening gradient overlays exactly that
-  // area, so it needs to track it instead of assuming a fixed height.
-  heroHeight: number;
 }
 
-export function SpotSheetExpanded({
-  spot,
-  onCollapse,
-  heroHeight,
-}: SpotSheetExpandedProps) {
+export function SpotSheetExpanded({ spot, onCollapse }: SpotSheetExpandedProps) {
   const insets = useSafeAreaInsets();
   const place = useRoughAddress(spot.lat, spot.lng);
 
-  const screenHeight = Dimensions.get("window").height;
-  // Fade from transparent (over the photo) to opaque DARK a little before
-  // the photo's own bottom edge, fully opaque by well after it.
-  const fadeStart = Math.max((heroHeight - 100) / screenHeight, 0.1);
-  const fadeEnd = Math.min((heroHeight + 60) / screenHeight, 0.95);
-
   return (
     <View style={styles.container}>
-      {/* The blurred backdrop and the sharp photo (SpotHeroPhoto) are both
-          siblings rendered by SpotSheet, underneath this view. This spans
-          the full screen: a touch of darkening right at the top (status bar
-          / buttons), transparent through the photo, then fading to fully
-          opaque DARK well before the text below - and staying opaque all the
-          way to the bottom, since the photo doesn't necessarily reach it. */}
-      <Svg style={StyleSheet.absoluteFill}>
+      {/* The blurred backdrop and the sharp centered photo (SpotHeroPhoto) are
+          both siblings rendered by SpotSheet, underneath this view. The photo
+          floats in the middle over the edge-to-edge blurred copy, so this must
+          NOT paint an opaque slab over it. Fixed-offset scrims only: a light
+          top wash so the status bar / buttons read, transparent through the
+          middle where the photo sits, and a darker bottom wash so the white
+          text below is legible over the blurred background. Offsets are
+          constant (no runtime-computed stops) - simpler and crash-proof. */}
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
         <Defs>
           <LinearGradient id="heroFade" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#000" stopOpacity={0.35} />
-            <Stop offset={fadeStart} stopColor="#000" stopOpacity={0} />
-            <Stop offset={fadeEnd} stopColor={DARK} stopOpacity={0} />
-            <Stop offset="1" stopColor={DARK} stopOpacity={1} />
+            <Stop offset="0.18" stopColor="#000" stopOpacity={0} />
+            <Stop offset="0.58" stopColor={DARK} stopOpacity={0} />
+            <Stop offset="1" stopColor={DARK} stopOpacity={0.85} />
           </LinearGradient>
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroFade)" />
