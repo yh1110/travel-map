@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, Image, StyleSheet, View } from "react-native";
+import { Dimensions, StyleSheet, View } from "react-native";
 import BottomSheet, {
   BottomSheetView,
   useBottomSheet,
@@ -12,8 +12,10 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
+import { usePhotoAspectRatio } from "../lib/imageSize";
 import type { Spot } from "../lib/spots";
 import { resolvePhotoUrl } from "../lib/supabase";
+import { SpotHeroBackdrop } from "./SpotHeroBackdrop";
 import { SpotHeroPhoto, type PhotoFrame } from "./SpotHeroPhoto";
 import { SpotSheetCollapsed } from "./SpotSheetCollapsed";
 import { SpotSheetExpanded } from "./SpotSheetExpanded";
@@ -27,37 +29,11 @@ interface SpotSheetProps {
 // the screen. enableDynamicSizing is off so only these points are used.
 const SNAP_POINTS = ["58%", "100%"];
 
-// Fallback while the photo's real dimensions are still loading.
-const DEFAULT_ASPECT_RATIO = 4 / 3;
 // Keep the expanded hero within a sane range regardless of the photo's own
 // aspect ratio - a very wide pano or a very tall portrait would otherwise
 // end up absurdly short or crowd out the text below it.
 const MIN_HERO_FRACTION = 0.35;
 const MAX_HERO_FRACTION = 0.72;
-
-/** The photo's own aspect ratio, once known (falls back to a 4:3 guess). */
-function usePhotoAspectRatio(photoPath: string): number {
-  const [ratio, setRatio] = useState(DEFAULT_ASPECT_RATIO);
-
-  useEffect(() => {
-    let cancelled = false;
-    setRatio(DEFAULT_ASPECT_RATIO);
-    Image.getSize(
-      resolvePhotoUrl(photoPath),
-      (width, height) => {
-        if (!cancelled && height > 0) setRatio(width / height);
-      },
-      () => {
-        // Keep the fallback ratio - the photo itself will still load fine.
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [photoPath]);
-
-  return ratio;
-}
 
 // Background swaps from the light collapsed card to the dark expanded page
 // as the drag crosses the midpoint between snap points 0 and 1.
@@ -109,55 +85,6 @@ function SpotSheetHandle() {
   );
 }
 
-// Fills the letterboxed space around the (possibly narrower) sharp photo
-// with the same image, blurred and darkened, edge to edge, instead of plain
-// dark bars - the same technique Google Maps' photo viewer uses. Sits behind
-// SpotHeroPhoto and only fades in for the expanded (4b) layout.
-function SpotHeroBackdrop({ photoPath }: { photoPath: string }) {
-  const { animatedIndex } = useBottomSheet();
-  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      animatedIndex.value,
-      [0.4, 1],
-      [0, 1],
-      Extrapolation.CLAMP,
-    ),
-  }));
-
-  return (
-    // Size this explicitly to the screen instead of StyleSheet.absoluteFill.
-    // absoluteFill derives its height from the parent (top:0/bottom:0), but this
-    // sits in the BottomSheetView content, which measures height 0 here (gorhom
-    // with enableDynamicSizing off doesn't stretch the flex:1 content), so
-    // absoluteFill collapsed to width:screen, height:0 - the Image (also
-    // absoluteFill) inherited height 0 and never drew, which is why the backdrop
-    // read as plain black. SpotHeroPhoto avoids this by using explicit Dimensions
-    // too. Verified via onLayout: absoluteFill -> {width:402,height:0}.
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: screenWidth,
-          height: screenHeight,
-        },
-        animatedStyle,
-      ]}
-      pointerEvents="none"
-    >
-      <Image
-        source={{ uri: resolvePhotoUrl(photoPath) }}
-        resizeMode="cover"
-        blurRadius={40}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.backdropTint} />
-    </Animated.View>
-  );
-}
-
 const EMPTY_FRAME: PhotoFrame = { x: 0, y: 0, width: 0, height: 0, borderRadius: 0 };
 
 // The photo (SpotHeroPhoto) is one element shared between both layouts, its
@@ -174,7 +101,7 @@ function SpotSheetContent({
   expanded: boolean;
 }) {
   const { animatedIndex } = useBottomSheet();
-  const aspectRatio = usePhotoAspectRatio(spot.photo_path);
+  const aspectRatio = usePhotoAspectRatio(resolvePhotoUrl(spot.photo_path));
   const [collapsedFrame, setCollapsedFrame] = useState<PhotoFrame>(EMPTY_FRAME);
 
   const expandedFrame = useMemo<PhotoFrame>(() => {
@@ -302,13 +229,6 @@ export function SpotSheet({ spot, onClose }: SpotSheetProps) {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-  },
-  backdropTint: {
-    ...StyleSheet.absoluteFill,
-    // Light enough that the blurred photo still reads as the photo (not a
-    // near-black slab), dark enough that the sharp centered photo and the
-    // white chrome/text on top of it stay legible.
-    backgroundColor: "rgba(18,14,12,0.42)",
   },
   background: {
     shadowColor: "#000",
