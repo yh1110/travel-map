@@ -1,11 +1,12 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 
 import { formatRelativeTime, formatTakenAt } from "../lib/format";
 import { useRoughAddress } from "../lib/geocode";
 import type { Spot } from "../lib/spots";
-import { resolvePhotoUrl } from "../lib/supabase";
-import { colors } from "../theme";
+import type { PhotoFrame } from "./SpotHeroPhoto";
+
+const PHOTO_BORDER_RADIUS = 20;
 
 const META_COLOR = "#9a9a9a";
 
@@ -51,19 +52,26 @@ function ClockIcon() {
 
 interface SpotSheetCollapsedProps {
   spot: Spot;
+  onPhotoLayout: (frame: PhotoFrame) => void;
 }
 
-export function SpotSheetCollapsed({ spot }: SpotSheetCollapsedProps) {
+export function SpotSheetCollapsed({
+  spot,
+  onPhotoLayout,
+}: SpotSheetCollapsedProps) {
   const place = useRoughAddress(spot.lat, spot.lng);
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const { x, y, width, height } = e.nativeEvent.layout;
+    onPhotoLayout({ x, y, width, height, borderRadius: PHOTO_BORDER_RADIUS });
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.photoWrap}>
-        <Image
-          source={{ uri: resolvePhotoUrl(spot.photo_path) }}
-          style={styles.photo}
-          resizeMode="cover"
-        />
+      <View style={styles.photoWrap} onLayout={handleLayout}>
+        {/* The actual photo is SpotHeroPhoto, a sibling absolutely
+            positioned over this slot - this is just a transparent spacer
+            that reserves the layout space and reports it via onLayout. */}
         <View style={styles.badge}>
           <View style={styles.badgeDot} />
           <Text style={styles.badgeText}>
@@ -102,13 +110,7 @@ const styles = StyleSheet.create({
   },
   photoWrap: {
     height: 220,
-    borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: colors.surface,
-  },
-  photo: {
-    width: "100%",
-    height: "100%",
+    borderRadius: PHOTO_BORDER_RADIUS,
   },
   badge: {
     position: "absolute",

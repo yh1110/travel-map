@@ -1,23 +1,21 @@
-import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, {
-  Circle,
   Defs,
-  Line,
   LinearGradient,
-  Path,
   Rect,
   Stop,
+  Circle,
+  Line,
+  Path,
 } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatRelativeTime, formatTakenAt } from "../lib/format";
 import { useRoughAddress } from "../lib/geocode";
 import type { Spot } from "../lib/spots";
-import { resolvePhotoUrl } from "../lib/supabase";
 
 const DARK = "#141210";
 const META_COLOR = "rgba(255,255,255,0.6)";
-const HERO_HEIGHT = Dimensions.get("window").height * 0.6;
 
 function BackChevron() {
   return (
@@ -76,33 +74,45 @@ function ClockIcon({ color }: { color: string }) {
 interface SpotSheetExpandedProps {
   spot: Spot;
   onCollapse: () => void;
+  // The shared SpotHeroPhoto's target height in this layout (varies by the
+  // photo's own aspect ratio) - the darkening gradient overlays exactly that
+  // area, so it needs to track it instead of assuming a fixed height.
+  heroHeight: number;
 }
 
-export function SpotSheetExpanded({ spot, onCollapse }: SpotSheetExpandedProps) {
+export function SpotSheetExpanded({
+  spot,
+  onCollapse,
+  heroHeight,
+}: SpotSheetExpandedProps) {
   const insets = useSafeAreaInsets();
   const place = useRoughAddress(spot.lat, spot.lng);
 
+  const screenHeight = Dimensions.get("window").height;
+  // Fade from transparent (over the photo) to opaque DARK a little before
+  // the photo's own bottom edge, fully opaque by well after it.
+  const fadeStart = Math.max((heroHeight - 100) / screenHeight, 0.1);
+  const fadeEnd = Math.min((heroHeight + 60) / screenHeight, 0.95);
+
   return (
     <View style={styles.container}>
-      <View style={styles.hero}>
-        <Image
-          source={{ uri: resolvePhotoUrl(spot.photo_path) }}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
-        {/* Darken the top for chrome contrast and fade into the dark body. */}
-        <Svg style={StyleSheet.absoluteFill}>
-          <Defs>
-            <LinearGradient id="heroFade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#000" stopOpacity={0.3} />
-              <Stop offset="0.25" stopColor="#000" stopOpacity={0} />
-              <Stop offset="0.6" stopColor={DARK} stopOpacity={0} />
-              <Stop offset="1" stopColor={DARK} stopOpacity={1} />
-            </LinearGradient>
-          </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroFade)" />
-        </Svg>
-      </View>
+      {/* The blurred backdrop and the sharp photo (SpotHeroPhoto) are both
+          siblings rendered by SpotSheet, underneath this view. This spans
+          the full screen: a touch of darkening right at the top (status bar
+          / buttons), transparent through the photo, then fading to fully
+          opaque DARK well before the text below - and staying opaque all the
+          way to the bottom, since the photo doesn't necessarily reach it. */}
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <LinearGradient id="heroFade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#000" stopOpacity={0.35} />
+            <Stop offset={fadeStart} stopColor="#000" stopOpacity={0} />
+            <Stop offset={fadeEnd} stopColor={DARK} stopOpacity={0} />
+            <Stop offset="1" stopColor={DARK} stopOpacity={1} />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#heroFade)" />
+      </Svg>
 
       <View
         style={[styles.topBar, { top: insets.top + 12 }]}
@@ -159,20 +169,11 @@ export function SpotSheetExpanded({ spot, onCollapse }: SpotSheetExpandedProps) 
 }
 
 const styles = StyleSheet.create({
+  // Transparent - the blurred backdrop + sharp photo (SpotHeroPhoto) are
+  // rendered behind this by SpotSheet and show through everywhere this
+  // layout doesn't itself paint something opaque.
   container: {
     flex: 1,
-    backgroundColor: DARK,
-  },
-  hero: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: HERO_HEIGHT,
-  },
-  heroImage: {
-    width: "100%",
-    height: "100%",
   },
   topBar: {
     position: "absolute",
