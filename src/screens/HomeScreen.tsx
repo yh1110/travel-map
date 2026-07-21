@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -139,6 +140,7 @@ export function HomeScreen({ navigation }: Props) {
   }, []);
 
   const goToCurrentLocation = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       if (!locationGranted) {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -171,6 +173,10 @@ export function HomeScreen({ navigation }: Props) {
 
   const handleSpotPress = useCallback(
     (spot: Spot) => {
+      // Map markers aren't Pressable but are still a tap-driven control
+      // (select, then open detail on second tap), so we give them the
+      // same light feedback as the other buttons.
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       if (selectedSpotId === spot.id) {
         openSpot(spot);
       } else {
@@ -181,6 +187,7 @@ export function HomeScreen({ navigation }: Props) {
   );
 
   const handlePost = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const { status: camStatus } =
       await ImagePicker.requestCameraPermissionsAsync();
     if (camStatus !== "granted") return;
@@ -220,6 +227,7 @@ export function HomeScreen({ navigation }: Props) {
         takenAt: parseExifDate(asset.exif) ?? new Date(),
         photo: { uri: asset.uri, mimeType: asset.mimeType ?? "image/jpeg" },
       });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("投稿しました！", "地図にあなたの景色が追加されました。");
       void loadSpots();
     } catch (e) {
@@ -253,7 +261,10 @@ export function HomeScreen({ navigation }: Props) {
       {error != null && !loading && (
         <Pressable
           style={[styles.banner, styles.errorBanner, { top: insets.top + 12 }]}
-          onPress={loadSpots}
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            void loadSpots();
+          }}
         >
           <Text style={styles.errorText}>{error}（タップで再試行）</Text>
         </Pressable>
@@ -277,7 +288,10 @@ export function HomeScreen({ navigation }: Props) {
               styles.modeSegment,
               mode === "public" && styles.modeSegmentActive,
             ]}
-            onPress={() => setMode("public")}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setMode("public");
+            }}
           >
             <Text
               style={[
@@ -293,7 +307,10 @@ export function HomeScreen({ navigation }: Props) {
               styles.modeSegment,
               mode === "private" && styles.modeSegmentActive,
             ]}
-            onPress={() => setMode("private")}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setMode("private");
+            }}
           >
             <Text
               style={[
@@ -310,6 +327,9 @@ export function HomeScreen({ navigation }: Props) {
       {/* Search button (placeholder for future destination search) */}
       <Pressable
         style={[styles.searchButton, { top: insets.top + 16 }]}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }}
         accessibilityLabel="目的地を検索"
       >
         <SearchIcon />
