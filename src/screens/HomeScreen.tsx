@@ -181,6 +181,7 @@ export function HomeScreen({ navigation }: Props) {
         openSpot(spot);
       } else {
         setSelectedSpotId(spot.id);
+        mapRef.current?.animateToLocation(spot.lat, spot.lng, 16, 1000);
       }
     },
     [selectedSpotId, openSpot],

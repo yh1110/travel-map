@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 
 import { formatTakenAt } from "../lib/format";
 import { resolvePhotoUrl } from "../lib/supabase";
+import { colors } from "../theme";
 
 interface SpotThumbnailProps {
   photoPath: string;
@@ -11,20 +12,24 @@ interface SpotThumbnailProps {
   takenAt?: string | null;
 }
 
+const BOX_SIZE = 50;
+const BOX_RADIUS = 15;
+const BORDER_WIDTH = 2.5;
+const DIAMOND_SIZE = 11;
+
 function SpotThumbnailComponent({
   photoPath,
   selected = false,
   takenAt,
 }: SpotThumbnailProps) {
-  const boxSize = selected ? 66 : 50;
-  const boxRadius = selected ? 19 : 15;
-  const borderWidth = selected ? 3 : 2.5;
-  const diamondSize = selected ? 13 : 11;
-
   return (
     <View style={styles.container}>
       {selected && (
-        <View style={styles.label}>
+        // Absolutely positioned so it floats above the thumbnail without
+        // changing the container's layout height - the marker's tap target
+        // (centerOffset, anchored to this view's measured height) must stay
+        // put whether or not the label is showing.
+        <View style={styles.label} pointerEvents="none">
           <Text style={styles.labelText} numberOfLines={1}>
             {formatTakenAt(takenAt ?? null)}
           </Text>
@@ -33,28 +38,19 @@ function SpotThumbnailComponent({
       <View
         style={[
           styles.box,
-          {
-            width: boxSize,
-            height: boxSize,
-            borderRadius: boxRadius,
-            borderWidth,
-          },
+          selected && styles.boxSelected,
           selected ? styles.boxShadowSelected : styles.boxShadowNormal,
         ]}
       >
         <Image
           source={{ uri: resolvePhotoUrl(photoPath) }}
-          style={[styles.image, { borderRadius: boxRadius - borderWidth }]}
+          style={styles.image}
         />
       </View>
       <View
         style={[
           styles.diamond,
-          {
-            width: diamondSize,
-            height: diamondSize,
-            marginTop: -Math.floor(diamondSize / 2),
-          },
+          selected && styles.diamondSelected,
           selected ? styles.diamondShadowSelected : styles.diamondShadowNormal,
         ]}
       />
@@ -69,11 +65,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
+    position: "absolute",
+    top: -35,
+    alignSelf: "center",
     backgroundColor: "#141414",
     borderRadius: 11,
     paddingHorizontal: 11,
     paddingVertical: 6,
-    marginBottom: 7,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -86,10 +84,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   box: {
+    width: BOX_SIZE,
+    height: BOX_SIZE,
+    borderRadius: BOX_RADIUS,
+    borderWidth: BORDER_WIDTH,
     borderColor: "#fff",
     overflow: "hidden",
     backgroundColor: "#e8e8e8",
     zIndex: 2,
+  },
+  boxSelected: {
+    borderColor: colors.accent,
   },
   boxShadowNormal: {
     shadowColor: "#000",
@@ -108,11 +113,18 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+    borderRadius: BOX_RADIUS - BORDER_WIDTH,
   },
   diamond: {
+    width: DIAMOND_SIZE,
+    height: DIAMOND_SIZE,
+    marginTop: -Math.floor(DIAMOND_SIZE / 2),
     backgroundColor: "#fff",
     transform: [{ rotate: "45deg" }],
     zIndex: 1,
+  },
+  diamondSelected: {
+    backgroundColor: colors.accent,
   },
   diamondShadowNormal: {
     shadowColor: "#000",

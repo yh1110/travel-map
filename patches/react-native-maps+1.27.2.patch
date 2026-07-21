@@ -1,0 +1,32 @@
+diff --git a/node_modules/react-native-maps/ios/AirMaps/RNMapsDefines.h b/node_modules/react-native-maps/ios/AirMaps/RNMapsDefines.h
+index e4fc048..91b6de5 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/RNMapsDefines.h
++++ b/node_modules/react-native-maps/ios/AirMaps/RNMapsDefines.h
+@@ -1 +1 @@
+-#define HAVE_GOOGLE_MAPS 1
++#define HAVE_GOOGLE_MAPS 0
+diff --git a/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm b/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
+index 447520d..28df01f 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
++++ b/node_modules/react-native-maps/ios/AirMaps/RNMapsMapView.mm
+@@ -74,7 +74,19 @@ - (void)animateCamera:(NSString *)cameraJSON duration:(NSInteger)duration{
+     MKMapCamera *camera = [RCTConvert MKMapCameraWithDefaults:cameraDic existingCamera:[_view camera]];
+     // don't emit region change events when we are setting the camera
+     _view.ignoreRegionChanges = YES;
+-    [_view setCamera:camera animated:YES];
++    // `duration` was previously ignored, always using MKMapView's fixed
++    // default animation length regardless of what JS requested. Wrapping
++    // the (non-animated) setCamera call in a UIView animation block lets us
++    // actually honor it.
++    __weak AIRMap *weakView = _view;
++    if (duration > 0) {
++        [UIView animateWithDuration:duration / 1000.0
++                          animations:^{
++            [weakView setCamera:camera];
++        }];
++    } else {
++        [_view setCamera:camera animated:NO];
++    }
+ }
+ 
+ - (void)fitToElements:(NSString *)edgePaddingJSON animated:(BOOL)animated {

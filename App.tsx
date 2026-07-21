@@ -23,7 +23,7 @@ export default function App() {
           <Stack.Screen
             name="SpotDetail"
             component={SpotDetailScreen}
-            options={{ title: "スポット" }}
+            options={{ title: "スポット", animation: "fade" }}
           />
         </Stack.Navigator>
       </NavigationContainer>

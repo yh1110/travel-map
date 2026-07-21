@@ -48,6 +48,10 @@ interface IosSpotMarkerProps {
 // Otherwise the tappable marker frame drifts away from the visible
 // thumbnail once selected, and the second tap that opens the detail screen
 // misses it.
+//
+// `onPress` (backed by react-native-maps' own UITapGestureRecognizer on the
+// marker view) never fires in this environment; MapKit's native selection
+// callback (`onSelect`) does, so taps are driven from that instead.
 function IosSpotMarker({ spot, onPress, selected }: IosSpotMarkerProps) {
   const [height, setHeight] = useState(0);
 
@@ -55,7 +59,7 @@ function IosSpotMarker({ spot, onPress, selected }: IosSpotMarkerProps) {
     <Marker
       coordinate={{ latitude: spot.lat, longitude: spot.lng }}
       centerOffset={{ x: 0, y: -height / 2 }}
-      onPress={() => onPress?.(spot)}
+      onSelect={() => onPress?.(spot)}
     >
       <View onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
         <SpotThumbnail
@@ -88,8 +92,18 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
 
   useImperativeHandle(ref, () => ({
     animateToLocation(lat, lng, zoom, durationMs) {
+      // react-native-maps' Camera.zoom is Google Maps only; Apple Maps
+      // (PROVIDER_DEFAULT) uses `altitude` (camera height in meters)
+      // instead, so a `zoom` value here is silently ignored on iOS. This is
+      // an approximate Web Mercator meters-per-pixel conversion (not an
+      // Apple-documented formula) to keep the same `zoom` call sites
+      // working across platforms - tune the multiplier if the altitude
+      // feels off.
+      const metersPerPixel =
+        (156543.03392 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, zoom);
+      const altitude = metersPerPixel * 600;
       mapRef.current?.animateCamera(
-        { center: { latitude: lat, longitude: lng }, zoom },
+        { center: { latitude: lat, longitude: lng }, altitude },
         { duration: durationMs },
       );
     },
