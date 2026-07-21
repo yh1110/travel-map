@@ -84,7 +84,11 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
         <Marker
           key={spot.id}
           coordinate={{ latitude: spot.lat, longitude: spot.lng }}
-          anchor={{ x: 0.5, y: 0.5 }}
+          // Anchor at the bottom (diamond tip), not center: selecting a spot
+          // adds a label above the thumbnail and grows its height, which
+          // would otherwise shift the thumbnail's on-screen position and
+          // break the second tap needed to open the detail screen.
+          anchor={{ x: 0.5, y: 1 }}
           onPress={() => onSpotPress?.(spot)}
         >
           <SpotThumbnail

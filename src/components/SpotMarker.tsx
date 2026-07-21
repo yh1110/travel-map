@@ -15,7 +15,11 @@ function SpotMarkerComponent({ spot, onPress, selected = false }: SpotMarkerProp
     <Marker
       id={spot.id}
       lngLat={[spot.lng, spot.lat]}
-      anchor="center"
+      // Anchor at the bottom (diamond tip), not center: selecting a spot
+      // adds a label above the thumbnail and grows its height, which
+      // would otherwise shift the thumbnail's on-screen position and
+      // break the second tap needed to open the detail screen.
+      anchor="bottom"
       onPress={() => onPress(spot)}
     >
       <SpotThumbnail
