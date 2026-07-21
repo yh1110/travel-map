@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatTakenAt, parseExifDate } from "./format";
+import { formatRelativeTime, formatTakenAt, parseExifDate } from "./format";
 
 describe("parseExifDate", () => {
   it("parses DateTimeOriginal in EXIF format", () => {
@@ -35,5 +35,32 @@ describe("formatTakenAt", () => {
   it("returns 不明 for null or invalid input", () => {
     expect(formatTakenAt(null)).toBe("不明");
     expect(formatTakenAt("garbage")).toBe("不明");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  it("returns たった今 for a moment ago", () => {
+    expect(formatRelativeTime(new Date(Date.now() - 5_000).toISOString())).toBe(
+      "たった今",
+    );
+  });
+
+  it("formats minutes, hours, and days within a week", () => {
+    expect(
+      formatRelativeTime(new Date(Date.now() - 5 * 60_000).toISOString()),
+    ).toBe("5分前");
+    expect(
+      formatRelativeTime(new Date(Date.now() - 3 * 3_600_000).toISOString()),
+    ).toBe("3時間前");
+    expect(
+      formatRelativeTime(new Date(Date.now() - 2 * 86_400_000).toISOString()),
+    ).toBe("2日前");
+  });
+
+  it("falls back to the absolute time past a week and for invalid input", () => {
+    const old = new Date(2020, 0, 1, 9, 30).toISOString();
+    expect(formatRelativeTime(old)).toBe(formatTakenAt(old));
+    expect(formatRelativeTime(null)).toBe("不明");
+    expect(formatRelativeTime("garbage")).toBe("不明");
   });
 });

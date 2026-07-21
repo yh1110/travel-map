@@ -14,6 +14,26 @@ export function formatTakenAt(iso: string | null): string {
   return formatDateTime(date);
 }
 
+/**
+ * Formats an ISO timestamp as a coarse relative time ("たった今" / "N分前" /
+ * "N時間前" / "N日前"). Anything older than a week - and null/invalid input -
+ * falls back to the absolute formatTakenAt output.
+ */
+export function formatRelativeTime(iso: string | null): string {
+  if (!iso) return formatTakenAt(iso);
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return formatTakenAt(iso);
+
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60_000);
+  if (minutes < 1) return "たった今";
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  if (days <= 7) return `${days}日前`;
+  return formatTakenAt(iso);
+}
+
 /** Parses EXIF "YYYY:MM:DD HH:MM:SS" into a Date (device-local time). */
 export function parseExifDate(
   exif: Record<string, unknown> | null | undefined,

@@ -16,6 +16,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppMap, type AppMapRef } from "../components/AppMap";
+import { SpotSheet } from "../components/SpotSheet";
 import { parseExifDate } from "../lib/format";
 import { createSpot, fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
@@ -164,28 +165,14 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [locationGranted]);
 
-  const openSpot = useCallback(
-    (spot: Spot) => {
-      navigation.navigate("SpotDetail", { spotId: spot.id });
-    },
-    [navigation],
-  );
-
-  const handleSpotPress = useCallback(
-    (spot: Spot) => {
-      // Map markers aren't Pressable but are still a tap-driven control
-      // (select, then open detail on second tap), so we give them the
-      // same light feedback as the other buttons.
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      if (selectedSpotId === spot.id) {
-        openSpot(spot);
-      } else {
-        setSelectedSpotId(spot.id);
-        mapRef.current?.animateToLocation(spot.lat, spot.lng, 16, 1000);
-      }
-    },
-    [selectedSpotId, openSpot],
-  );
+  const handleSpotPress = useCallback((spot: Spot) => {
+    // Map markers aren't Pressable but are still a tap-driven control, so we
+    // give them the same light feedback as the other buttons. Tapping selects
+    // the spot and zooms in; the SpotSheet then rises from the bottom.
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedSpotId(spot.id);
+    mapRef.current?.animateToLocation(spot.lat, spot.lng, 16, 1000);
+  }, []);
 
   const handlePost = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -240,6 +227,8 @@ export function HomeScreen({ navigation }: Props) {
       setPosting(false);
     }
   }, [loadSpots]);
+
+  const selectedSpot = spots.find((s) => s.id === selectedSpotId) ?? null;
 
   return (
     <View style={styles.container}>
@@ -371,6 +360,11 @@ export function HomeScreen({ navigation }: Props) {
       >
         <CameraIcon />
       </Pressable>
+
+      <SpotSheet
+        spot={selectedSpot}
+        onClose={() => setSelectedSpotId(null)}
+      />
     </View>
   );
 }
