@@ -115,6 +115,7 @@ function SpotSheetHandle() {
 // SpotHeroPhoto and only fades in for the expanded (4b) layout.
 function SpotHeroBackdrop({ photoPath }: { photoPath: string }) {
   const { animatedIndex } = useBottomSheet();
+  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       animatedIndex.value,
@@ -125,8 +126,25 @@ function SpotHeroBackdrop({ photoPath }: { photoPath: string }) {
   }));
 
   return (
+    // Size this explicitly to the screen instead of StyleSheet.absoluteFill.
+    // absoluteFill derives its height from the parent (top:0/bottom:0), but this
+    // sits in the BottomSheetView content, which measures height 0 here (gorhom
+    // with enableDynamicSizing off doesn't stretch the flex:1 content), so
+    // absoluteFill collapsed to width:screen, height:0 - the Image (also
+    // absoluteFill) inherited height 0 and never drew, which is why the backdrop
+    // read as plain black. SpotHeroPhoto avoids this by using explicit Dimensions
+    // too. Verified via onLayout: absoluteFill -> {width:402,height:0}.
     <Animated.View
-      style={[StyleSheet.absoluteFill, animatedStyle]}
+      style={[
+        {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: screenWidth,
+          height: screenHeight,
+        },
+        animatedStyle,
+      ]}
       pointerEvents="none"
     >
       <Image
