@@ -1,5 +1,5 @@
-import { forwardRef, useImperativeHandle, useRef } from "react";
-import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
 import type { Spot } from "../lib/spots";
@@ -33,6 +33,39 @@ interface AppMapProps {
   pitchEnabled?: boolean;
   onRegionChangeComplete?: (region: MapRegion) => void;
   style?: StyleProp<ViewStyle>;
+}
+
+interface IosSpotMarkerProps {
+  spot: Spot;
+  onPress?: (spot: Spot) => void;
+  selected: boolean;
+}
+
+// react-native-maps' `anchor` prop only works with PROVIDER_GOOGLE; Apple
+// Maps (PROVIDER_DEFAULT) needs `centerOffset` instead, and that has to be
+// computed from the marker's actual rendered height (measured via onLayout)
+// since SpotThumbnail grows when selected (adds a label, 50->66px box).
+// Otherwise the tappable marker frame drifts away from the visible
+// thumbnail once selected, and the second tap that opens the detail screen
+// misses it.
+function IosSpotMarker({ spot, onPress, selected }: IosSpotMarkerProps) {
+  const [height, setHeight] = useState(0);
+
+  return (
+    <Marker
+      coordinate={{ latitude: spot.lat, longitude: spot.lng }}
+      centerOffset={{ x: 0, y: -height / 2 }}
+      onPress={() => onPress?.(spot)}
+    >
+      <View onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
+        <SpotThumbnail
+          photoPath={spot.photo_path}
+          selected={selected}
+          takenAt={spot.taken_at}
+        />
+      </View>
+    </Marker>
+  );
 }
 
 export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
@@ -81,22 +114,12 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
       }
     >
       {spots?.map((spot) => (
-        <Marker
+        <IosSpotMarker
           key={spot.id}
-          coordinate={{ latitude: spot.lat, longitude: spot.lng }}
-          // Anchor at the bottom (diamond tip), not center: selecting a spot
-          // adds a label above the thumbnail and grows its height, which
-          // would otherwise shift the thumbnail's on-screen position and
-          // break the second tap needed to open the detail screen.
-          anchor={{ x: 0.5, y: 1 }}
-          onPress={() => onSpotPress?.(spot)}
-        >
-          <SpotThumbnail
-            photoPath={spot.photo_path}
-            selected={spot.id === selectedSpotId}
-            takenAt={spot.taken_at}
-          />
-        </Marker>
+          spot={spot}
+          onPress={onSpotPress}
+          selected={spot.id === selectedSpotId}
+        />
       ))}
     </MapView>
   );
