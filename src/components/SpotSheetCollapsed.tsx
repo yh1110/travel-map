@@ -1,54 +1,14 @@
 import { StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
-import Svg, { Circle, Line, Path } from "react-native-svg";
 
 import { formatRelativeTime, formatTakenAt } from "../lib/format";
 import { useRoughAddress } from "../lib/geocode";
 import type { Spot } from "../lib/spots";
 import type { PhotoFrame } from "./SpotHeroPhoto";
+import { ClockIcon, PinIcon } from "./SpotSheetIcons";
 
 const PHOTO_BORDER_RADIUS = 20;
 
 const META_COLOR = "#9a9a9a";
-
-function PinIcon() {
-  return (
-    <Svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <Path
-        d="M7.5 1.5c-2.35 0-4.25 1.9-4.25 4.25 0 3.1 4.25 7.5 4.25 7.5s4.25-4.4 4.25-7.5c0-2.35-1.9-4.25-4.25-4.25z"
-        stroke={META_COLOR}
-        strokeWidth="1.3"
-        strokeLinejoin="round"
-      />
-      <Circle cx="7.5" cy="5.75" r="1.6" stroke={META_COLOR} strokeWidth="1.3" />
-    </Svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <Svg width={15} height={15} viewBox="0 0 15 15" fill="none">
-      <Circle cx="7.5" cy="7.5" r="5.75" stroke={META_COLOR} strokeWidth="1.3" />
-      <Line
-        x1="7.5"
-        y1="4.5"
-        x2="7.5"
-        y2="7.5"
-        stroke={META_COLOR}
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-      <Line
-        x1="7.5"
-        y1="7.5"
-        x2="9.9"
-        y2="8.7"
-        stroke={META_COLOR}
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
 
 interface SpotSheetCollapsedProps {
   spot: Spot;
@@ -87,13 +47,13 @@ export function SpotSheetCollapsed({
       </Text>
 
       <View style={styles.metaRow}>
-        <PinIcon />
+        <PinIcon color={META_COLOR} />
         <Text style={styles.metaText} numberOfLines={1}>
           {place}
         </Text>
       </View>
       <View style={styles.metaRow}>
-        <ClockIcon />
+        <ClockIcon color={META_COLOR} />
         <Text style={styles.metaText} numberOfLines={1}>
           {formatTakenAt(spot.taken_at)} 撮影
         </Text>
