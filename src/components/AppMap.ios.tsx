@@ -25,6 +25,7 @@ interface AppMapProps {
   initialRegion: MapRegion;
   spots?: Spot[];
   onSpotPress?: (spot: Spot) => void;
+  selectedSpotId?: string | null;
   showsUserLocation?: boolean;
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
@@ -39,6 +40,7 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
     initialRegion,
     spots,
     onSpotPress,
+    selectedSpotId,
     showsUserLocation = false,
     scrollEnabled = true,
     zoomEnabled = true,
@@ -85,7 +87,11 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
           anchor={{ x: 0.5, y: 0.5 }}
           onPress={() => onSpotPress?.(spot)}
         >
-          <SpotThumbnail photoPath={spot.photo_path} />
+          <SpotThumbnail
+            photoPath={spot.photo_path}
+            selected={spot.id === selectedSpotId}
+            takenAt={spot.taken_at}
+          />
         </Marker>
       ))}
     </MapView>

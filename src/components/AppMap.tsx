@@ -31,6 +31,7 @@ interface AppMapProps {
   initialRegion: MapRegion;
   spots?: Spot[];
   onSpotPress?: (spot: Spot) => void;
+  selectedSpotId?: string | null;
   showsUserLocation?: boolean;
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
@@ -49,6 +50,7 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
     initialRegion,
     spots,
     onSpotPress,
+    selectedSpotId,
     showsUserLocation = false,
     scrollEnabled = true,
     zoomEnabled = true,
@@ -108,6 +110,7 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
           key={spot.id}
           spot={spot}
           onPress={onSpotPress ?? (() => {})}
+          selected={spot.id === selectedSpotId}
         />
       ))}
     </MapLibreMap>

@@ -7,6 +7,8 @@ import {
   Text,
   View,
 } from "react-native";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+import { BlurView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -20,6 +22,85 @@ import { colors, INITIAL_REGION } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
+type Mode = "public" | "private";
+
+function SearchIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
+      <Circle cx="9.5" cy="9.5" r="6.5" stroke="white" strokeWidth="2" />
+      <Line
+        x1="14.5"
+        y1="14.5"
+        x2="20"
+        y2="20"
+        stroke="white"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function CrosshairIcon() {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
+      <Circle cx="11" cy="11" r="3.5" stroke="#141414" strokeWidth="1.8" />
+      <Line
+        x1="11"
+        y1="1"
+        x2="11"
+        y2="6.5"
+        stroke="#141414"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <Line
+        x1="11"
+        y1="15.5"
+        x2="11"
+        y2="21"
+        stroke="#141414"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <Line
+        x1="1"
+        y1="11"
+        x2="6.5"
+        y2="11"
+        stroke="#141414"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <Line
+        x1="15.5"
+        y1="11"
+        x2="21"
+        y2="11"
+        stroke="#141414"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <Svg width={26} height={22} viewBox="0 0 26 22" fill="none">
+      <Rect x="1" y="6" width="24" height="15" rx="2.5" stroke="white" strokeWidth="1.8" />
+      <Path
+        d="M9 6L10.5 3H15.5L17 6"
+        stroke="white"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <Circle cx="13" cy="13.5" r="4" stroke="white" strokeWidth="1.8" />
+    </Svg>
+  );
+}
+
 export function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<AppMapRef>(null);
@@ -28,6 +109,9 @@ export function HomeScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
   const [posting, setPosting] = useState(false);
+  // TODO: この切替は現状見た目のみ。公開/非公開のデータモデルが実装され次第、実際のフィルタリングと接続する
+  const [mode, setMode] = useState<Mode>("public");
+  const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
 
   const loadSpots = useCallback(async () => {
     try {
@@ -83,6 +167,17 @@ export function HomeScreen({ navigation }: Props) {
       navigation.navigate("SpotDetail", { spotId: spot.id });
     },
     [navigation],
+  );
+
+  const handleSpotPress = useCallback(
+    (spot: Spot) => {
+      if (selectedSpotId === spot.id) {
+        openSpot(spot);
+      } else {
+        setSelectedSpotId(spot.id);
+      }
+    },
+    [selectedSpotId, openSpot],
   );
 
   const handlePost = useCallback(async () => {
@@ -144,7 +239,8 @@ export function HomeScreen({ navigation }: Props) {
         style={styles.map}
         initialRegion={INITIAL_REGION}
         spots={spots}
-        onSpotPress={openSpot}
+        onSpotPress={handleSpotPress}
+        selectedSpotId={selectedSpotId}
         showsUserLocation={locationGranted}
       />
 
@@ -170,6 +266,55 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       )}
 
+      {/* Mode toggle: PUBLIC / PRIVATE */}
+      <View
+        style={[styles.modeToggleOuter, { top: insets.top + 16 }]}
+        pointerEvents="box-none"
+      >
+        <BlurView intensity={70} tint="light" style={styles.modeBlur}>
+          <Pressable
+            style={[
+              styles.modeSegment,
+              mode === "public" && styles.modeSegmentActive,
+            ]}
+            onPress={() => setMode("public")}
+          >
+            <Text
+              style={[
+                styles.modeText,
+                mode === "public" && styles.modeTextActive,
+              ]}
+            >
+              PUBLIC
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.modeSegment,
+              mode === "private" && styles.modeSegmentActive,
+            ]}
+            onPress={() => setMode("private")}
+          >
+            <Text
+              style={[
+                styles.modeText,
+                mode === "private" && styles.modeTextActive,
+              ]}
+            >
+              PRIVATE
+            </Text>
+          </Pressable>
+        </BlurView>
+      </View>
+
+      {/* Search button (placeholder for future destination search) */}
+      <Pressable
+        style={[styles.searchButton, { top: insets.top + 16 }]}
+        accessibilityLabel="目的地を検索"
+      >
+        <SearchIcon />
+      </Pressable>
+
       {posting && (
         <View style={styles.postingOverlay}>
           <ActivityIndicator color={colors.buttonIcon} size="large" />
@@ -177,18 +322,24 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       )}
 
-      <Pressable
-        style={[styles.locateButton, { bottom: insets.bottom + 96 }]}
-        onPress={goToCurrentLocation}
-        accessibilityLabel="現在地へ移動"
-      >
-        <Text style={styles.locateIcon}>➤</Text>
-      </Pressable>
+      {/* Current location button with crosshair icon */}
+      <View style={[styles.locateButtonOuter, { bottom: insets.bottom + 52 }]}>
+        <BlurView intensity={60} tint="light" style={styles.locateBlur}>
+          <Pressable
+            style={styles.locateInner}
+            onPress={goToCurrentLocation}
+            accessibilityLabel="現在地へ移動"
+          >
+            <CrosshairIcon />
+          </Pressable>
+        </BlurView>
+      </View>
 
+      {/* Post button with camera icon only */}
       <Pressable
         style={[
           styles.postButton,
-          { bottom: insets.bottom + 24 },
+          { bottom: insets.bottom + 44 },
           posting && styles.postButtonDisabled,
         ]}
         onPress={() => {
@@ -197,7 +348,7 @@ export function HomeScreen({ navigation }: Props) {
         disabled={posting}
         accessibilityLabel="景色を投稿"
       >
-        <Text style={styles.postButtonText}>＋ この景色を投稿</Text>
+        <CameraIcon />
       </Pressable>
     </View>
   );
@@ -238,6 +389,57 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 13,
   },
+  // Mode toggle
+  modeToggleOuter: {
+    position: "absolute",
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+    borderRadius: 16,
+  },
+  modeBlur: {
+    flexDirection: "row",
+    gap: 3,
+    padding: 4,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  modeSegment: {
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 12,
+  },
+  modeSegmentActive: {
+    backgroundColor: "#141414",
+  },
+  modeText: {
+    color: "#7a7a7a",
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+  },
+  modeTextActive: {
+    color: "#fff",
+  },
+  // Search button
+  searchButton: {
+    position: "absolute",
+    right: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 17,
+    backgroundColor: "#141414",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
   postingOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -250,45 +452,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  locateButton: {
+  // Locate button (crosshair) with blur
+  locateButtonOuter: {
     position: "absolute",
-    right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: colors.button,
+    right: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 17,
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  locateBlur: {
+    flex: 1,
+    borderRadius: 17,
+    overflow: "hidden",
+  },
+  locateInner: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
   },
-  locateIcon: {
-    fontSize: 20,
-    color: colors.buttonIcon,
-    transform: [{ rotate: "-45deg" }],
-  },
+  // Post button (camera icon)
   postButton: {
     position: "absolute",
     alignSelf: "center",
-    backgroundColor: colors.button,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: "#141414",
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
+    shadowOpacity: 0.34,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
   },
   postButtonDisabled: {
     opacity: 0.5,
-  },
-  postButtonText: {
-    color: colors.buttonIcon,
-    fontSize: 16,
-    fontWeight: "700",
   },
 });
