@@ -7,9 +7,10 @@ import { SpotThumbnail } from "./SpotThumbnail";
 interface SpotMarkerProps {
   spot: Spot;
   onPress: (spot: Spot) => void;
+  selected?: boolean;
 }
 
-function SpotMarkerComponent({ spot, onPress }: SpotMarkerProps) {
+function SpotMarkerComponent({ spot, onPress, selected = false }: SpotMarkerProps) {
   return (
     <Marker
       id={spot.id}
@@ -17,7 +18,11 @@ function SpotMarkerComponent({ spot, onPress }: SpotMarkerProps) {
       anchor="center"
       onPress={() => onPress(spot)}
     >
-      <SpotThumbnail photoPath={spot.photo_path} />
+      <SpotThumbnail
+        photoPath={spot.photo_path}
+        selected={selected}
+        takenAt={spot.taken_at}
+      />
     </Marker>
   );
 }
