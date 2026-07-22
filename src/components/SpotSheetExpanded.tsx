@@ -1,28 +1,21 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Defs, LinearGradient, Rect, Stop, Path } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatRelativeTime, formatTakenAt } from "../lib/format";
 import { useRoughAddress } from "../lib/geocode";
 import type { Spot } from "../lib/spots";
-import { ClockIcon, PinIcon } from "./SpotSheetIcons";
+import {
+  BookmarkIcon,
+  ClockIcon,
+  CloseIcon,
+  PersonIcon,
+  PinIcon,
+  ShareIcon,
+} from "./SpotSheetIcons";
 
 const DARK = "#141210";
 const META_COLOR = "rgba(255,255,255,0.6)";
-
-function BackChevron() {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 22 22" fill="none">
-      <Path
-        d="M13.5 4.5L7 11l6.5 6.5"
-        stroke="#fff"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 interface SpotSheetExpandedProps {
   spot: Spot;
@@ -59,51 +52,66 @@ export function SpotSheetExpanded({ spot, onCollapse }: SpotSheetExpandedProps) 
         style={[styles.topBar, { top: insets.top + 12 }]}
         pointerEvents="box-none"
       >
-        <Pressable
-          style={styles.backButton}
-          onPress={onCollapse}
-          accessibilityLabel="閉じる"
-        >
-          <BackChevron />
-        </Pressable>
+        {/* Date label: coarse relative time ("たった今" / "N時間前" / "N日前"). */}
         <View style={styles.badge}>
           <View style={styles.badgeDot} />
           <Text style={styles.badgeText}>
             {formatRelativeTime(spot.taken_at)}
           </Text>
         </View>
+        <Pressable
+          style={styles.iconButton}
+          onPress={onCollapse}
+          accessibilityLabel="閉じる"
+        >
+          <CloseIcon color="#fff" />
+        </Pressable>
       </View>
 
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + 24 }]}>
-        {/* No title column yet - stand in with the absolute capture time. */}
-        <Text style={styles.title} numberOfLines={2}>
-          {formatTakenAt(spot.taken_at)}
-        </Text>
+      <View
+        style={[styles.bottom, { paddingBottom: insets.bottom + 24 }]}
+        pointerEvents="box-none"
+      >
+        <View style={styles.bottomRow}>
+          <View style={styles.bottomLeft}>
+            <Text style={styles.title} numberOfLines={2}>
+              {spot.title}
+            </Text>
 
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <PinIcon color={META_COLOR} />
-            <Text style={styles.metaText} numberOfLines={1}>
-              {place}
-            </Text>
+            <View style={styles.metaRow}>
+              <PinIcon color={META_COLOR} />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {place}
+              </Text>
+            </View>
+            <View style={styles.metaRow}>
+              <ClockIcon color={META_COLOR} />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {formatTakenAt(spot.taken_at)}
+              </Text>
+            </View>
+
+            {/* No profile feature yet - this is a static placeholder until
+                accounts/display names exist. Own post, so this anchors the
+                bottom-most position of the block. */}
+            <View style={styles.accountRow}>
+              <View style={styles.avatar}>
+                <PersonIcon color="#fff" size={14} />
+              </View>
+              <Text style={styles.accountText}>自分の投稿</Text>
+            </View>
           </View>
-          <View style={styles.metaItem}>
-            <ClockIcon color={META_COLOR} />
-            <Text style={styles.metaText} numberOfLines={1}>
-              {formatTakenAt(spot.taken_at)}
-            </Text>
+
+          {/* Visual only for now: share/save actions are out of scope. */}
+          <View style={styles.actionColumn}>
+            <Pressable style={styles.actionButton} disabled accessibilityLabel="共有">
+              <ShareIcon color="#fff" />
+            </Pressable>
+            <Pressable style={styles.actionButton} disabled accessibilityLabel="保存">
+              <BookmarkIcon color="#fff" />
+            </Pressable>
           </View>
         </View>
-
-        {/* Visual only for now: launching an external map app is out of scope. */}
-        <Pressable
-          style={styles.goButton}
-          disabled
-          accessibilityLabel="ここへ行く"
-        >
-          <PinIcon color="#141414" size={18} />
-          <Text style={styles.goText}>ここへ行く</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -124,10 +132,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  backButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",
     justifyContent: "center",
@@ -163,6 +171,34 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 22,
   },
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+  },
+  bottomLeft: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  accountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 14,
+  },
+  avatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accountText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
   title: {
     fontSize: 28,
     fontWeight: "900",
@@ -170,33 +206,23 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 18,
-    marginTop: 12,
-  },
-  metaItem: {
-    flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    marginTop: 8,
   },
   metaText: {
+    flexShrink: 1,
     color: META_COLOR,
     fontSize: 12.5,
   },
-  goButton: {
-    flexDirection: "row",
+  actionColumn: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 22,
+    paddingBottom: 4,
+  },
+  actionButton: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    marginTop: 22,
-  },
-  goText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#141414",
   },
 });

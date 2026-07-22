@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppMap, type AppMapRef } from "../components/AppMap";
 import { SpotSheet } from "../components/SpotSheet";
 import { parseExifDate } from "../lib/format";
+import { resolveRoughAddress } from "../lib/geocode";
 import { focusCoordinateAboveSheet } from "../lib/mapFocus";
 import { createSpot, fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
@@ -27,6 +28,26 @@ import { colors, INITIAL_REGION } from "../theme";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 type Mode = "public" | "private";
+
+/**
+ * Resolves to the entered title, or null if the user cancelled. Prefilled
+ * with `defaultTitle` (e.g. a reverse-geocoded place name) so accepting as-is
+ * is a single tap. iOS-only (Alert.prompt).
+ */
+function promptForTitle(defaultTitle: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    Alert.prompt(
+      "タイトルをつけてください",
+      "この景色を一言で表すタイトルを入力してください",
+      [
+        { text: "キャンセル", style: "cancel", onPress: () => resolve(null) },
+        { text: "投稿", onPress: (text?: string) => resolve(text ?? null) },
+      ],
+      "plain-text",
+      defaultTitle,
+    );
+  });
+}
 
 function SearchIcon() {
   return (
@@ -216,9 +237,23 @@ export function HomeScreen({ navigation }: Props) {
       return;
     }
 
+    const roughAddress = await resolveRoughAddress(
+      position.coords.latitude,
+      position.coords.longitude,
+    );
+    const title = (
+      await promptForTitle(roughAddress ?? "タイトル未設定")
+    )?.trim();
+    if (title == null) return;
+    if (title.length === 0) {
+      Alert.alert("タイトルを入力してください");
+      return;
+    }
+
     setPosting(true);
     try {
       await createSpot({
+        title,
         lat: position.coords.latitude,
         lng: position.coords.longitude,
         takenAt: parseExifDate(asset.exif) ?? new Date(),

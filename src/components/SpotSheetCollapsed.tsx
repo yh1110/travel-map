@@ -40,10 +40,8 @@ export function SpotSheetCollapsed({
         </View>
       </View>
 
-      {/* No title column yet - stand in with the absolute capture time, the
-          same placeholder SpotThumbnail uses. */}
       <Text style={styles.title} numberOfLines={1}>
-        {formatTakenAt(spot.taken_at)}
+        {spot.title}
       </Text>
 
       <View style={styles.metaRow}>

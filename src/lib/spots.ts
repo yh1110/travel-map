@@ -6,6 +6,7 @@ export interface Spot {
   id: string;
   created_at: string;
   user_id: string | null;
+  title: string;
   lat: number;
   lng: number;
   photo_path: string;
@@ -13,6 +14,7 @@ export interface Spot {
 }
 
 export interface NewSpot {
+  title: string;
   lat: number;
   lng: number;
   takenAt: Date | null;
@@ -94,6 +96,7 @@ export async function createSpot(input: NewSpot): Promise<Spot> {
     .from("spots")
     .insert({
       user_id: userId,
+      title: input.title,
       lat: input.lat,
       lng: input.lng,
       photo_path: photoPath,
