@@ -8,7 +8,7 @@ import {
 } from "@maplibre/maplibre-react-native";
 
 import { SpotMarker } from "./SpotMarker";
-import type { Spot } from "../lib/spots";
+import type { SpotGroup } from "../lib/spotGroups";
 import { MAP_STYLE_URL } from "../theme";
 
 export interface MapRegion {
@@ -29,9 +29,9 @@ export interface AppMapRef {
 
 interface AppMapProps {
   initialRegion: MapRegion;
-  spots?: Spot[];
-  onSpotPress?: (spot: Spot) => void;
-  selectedSpotId?: string | null;
+  groups?: SpotGroup[];
+  onGroupPress?: (group: SpotGroup) => void;
+  selectedGroupId?: string | null;
   showsUserLocation?: boolean;
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
@@ -48,9 +48,9 @@ function longitudeDeltaToZoom(longitudeDelta: number): number {
 export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
   {
     initialRegion,
-    spots,
-    onSpotPress,
-    selectedSpotId,
+    groups,
+    onGroupPress,
+    selectedGroupId,
     showsUserLocation = false,
     scrollEnabled = true,
     zoomEnabled = true,
@@ -105,12 +105,12 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
         }}
       />
       {showsUserLocation && <UserLocation />}
-      {spots?.map((spot) => (
+      {groups?.map((group) => (
         <SpotMarker
-          key={spot.id}
-          spot={spot}
-          onPress={onSpotPress ?? (() => {})}
-          selected={spot.id === selectedSpotId}
+          key={group.id}
+          group={group}
+          onPress={onGroupPress ?? (() => {})}
+          selected={group.id === selectedGroupId}
         />
       ))}
     </MapLibreMap>

@@ -13,7 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { usePhotoAspectRatio } from "../lib/imageSize";
-import type { Spot } from "../lib/spots";
+import type { SpotGroup } from "../lib/spotGroups";
 import { resolvePhotoUrl } from "../lib/supabase";
 import { SpotHeroBackdrop } from "./SpotHeroBackdrop";
 import { SpotHeroPhoto, type PhotoFrame } from "./SpotHeroPhoto";
@@ -21,7 +21,7 @@ import { SpotSheetCollapsed } from "./SpotSheetCollapsed";
 import { SpotSheetExpanded } from "./SpotSheetExpanded";
 
 interface SpotSheetProps {
-  spot: Spot | null;
+  group: SpotGroup | null;
   onClose: () => void;
 }
 
@@ -100,16 +100,25 @@ const EMPTY_FRAME: PhotoFrame = { x: 0, y: 0, width: 0, height: 0, borderRadius:
 // scaling up continuously rather than two photos crossfading. The rest of
 // each layout (badges, text, buttons) still crossfades via opacity.
 function SpotSheetContent({
-  spot,
+  group,
+  currentIndex,
+  onSelectIndex,
   onCollapse,
   expanded,
 }: {
-  spot: Spot;
+  group: SpotGroup;
+  currentIndex: number;
+  onSelectIndex: (index: number) => void;
   onCollapse: () => void;
   expanded: boolean;
 }) {
   const { animatedIndex } = useBottomSheet();
-  const aspectRatio = usePhotoAspectRatio(resolvePhotoUrl(spot.photo_path));
+  const spot =
+    group.spots[Math.min(currentIndex, group.spots.length - 1)] ??
+    group.spots[0];
+  const aspectRatio = usePhotoAspectRatio(
+    spot ? resolvePhotoUrl(spot.photo_path) : "",
+  );
   const [collapsedFrame, setCollapsedFrame] = useState<PhotoFrame>(EMPTY_FRAME);
   const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
   // Explicit size instead of StyleSheet.absoluteFill: absoluteFill derives its
@@ -162,6 +171,8 @@ function SpotSheetContent({
     ),
   }));
 
+  if (!spot) return null;
+
   return (
     <View style={styles.content}>
       <SpotHeroBackdrop photoPath={spot.photo_path} />
@@ -176,41 +187,60 @@ function SpotSheetContent({
         style={[fullScreenStyle, collapsedStyle]}
         pointerEvents={expanded ? "none" : "box-none"}
       >
-        <SpotSheetCollapsed spot={spot} onPhotoLayout={setCollapsedFrame} />
+        <SpotSheetCollapsed
+          group={group}
+          currentIndex={currentIndex}
+          onSelectIndex={onSelectIndex}
+          onPhotoLayout={setCollapsedFrame}
+        />
       </Animated.View>
       <Animated.View
         style={[fullScreenStyle, expandedStyle]}
         pointerEvents={expanded ? "box-none" : "none"}
       >
-        <SpotSheetExpanded spot={spot} onCollapse={onCollapse} />
+        <SpotSheetExpanded
+          group={group}
+          currentIndex={currentIndex}
+          onSelectIndex={onSelectIndex}
+          onCollapse={onCollapse}
+        />
       </Animated.View>
       <SpotSheetHandle />
     </View>
   );
 }
 
-export function SpotSheet({ spot, onClose }: SpotSheetProps) {
+export function SpotSheet({ group, onClose }: SpotSheetProps) {
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
-  // Keep the last non-null spot rendered so content doesn't blank out during
-  // the close animation when `spot` flips to null.
-  const [renderedSpot, setRenderedSpot] = useState<Spot | null>(spot);
+  // Keep the last non-null group rendered so content doesn't blank out during
+  // the close animation when `group` flips to null.
+  const [renderedGroup, setRenderedGroup] = useState<SpotGroup | null>(group);
+  // Which photo of the group is currently shown (0 = newest).
+  const [currentIndex, setCurrentIndex] = useState(0);
   // Settled snap index, used only to gate which content layer can receive
   // touches - the crossfade itself is driven by the continuous animatedIndex
   // inside SpotSheetContent, not this.
   const [index, setIndex] = useState(-1);
 
-  // React to the selected spot *identity*, not object reference: a background
-  // refetch hands back new Spot objects, and depending on those would yank an
-  // expanded sheet back to collapsed. A spot's data is immutable per id.
+  // React to the selected group *identity*, not object reference: a
+  // background refetch hands back new group objects, and depending on those
+  // would yank an expanded sheet back to collapsed.
   useEffect(() => {
-    if (spot) {
-      setRenderedSpot(spot);
+    if (group) {
+      setRenderedGroup(group);
+      setCurrentIndex(0);
       sheetRef.current?.snapToIndex(0);
     } else {
       sheetRef.current?.close();
     }
-  }, [spot?.id]);
+  }, [group?.id]);
+
+  // A refetch can still shrink the group (e.g. a spot deleted elsewhere) -
+  // keep the rendered data fresh without resetting the sheet position.
+  useEffect(() => {
+    if (group) setRenderedGroup(group);
+  }, [group]);
 
   const handleChange = useCallback(
     (i: number) => {
@@ -236,9 +266,11 @@ export function SpotSheet({ spot, onClose }: SpotSheetProps) {
       handleComponent={null}
     >
       <BottomSheetView style={styles.content}>
-        {renderedSpot != null && (
+        {renderedGroup != null && (
           <SpotSheetContent
-            spot={renderedSpot}
+            group={renderedGroup}
+            currentIndex={currentIndex}
+            onSelectIndex={setCurrentIndex}
             onCollapse={collapse}
             expanded={index >= 1}
           />

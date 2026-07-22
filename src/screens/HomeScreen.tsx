@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +21,7 @@ import { SpotSheet } from "../components/SpotSheet";
 import { parseExifDate } from "../lib/format";
 import { resolveRoughAddress } from "../lib/geocode";
 import { focusCoordinateAboveSheet } from "../lib/mapFocus";
+import { groupSpotsByLocation, type SpotGroup } from "../lib/spotGroups";
 import { createSpot, fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, INITIAL_REGION } from "../theme";
@@ -136,7 +137,9 @@ export function HomeScreen({ navigation }: Props) {
   const [posting, setPosting] = useState(false);
   // TODO: この切替は現状見た目のみ。公開/非公開のデータモデルが実装され次第、実際のフィルタリングと接続する
   const [mode, setMode] = useState<Mode>("public");
-  const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+
+  const groups = useMemo(() => groupSpotsByLocation(spots), [spots]);
 
   const loadSpots = useCallback(async () => {
     try {
@@ -188,16 +191,16 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [locationGranted]);
 
-  const handleSpotPress = useCallback((spot: Spot) => {
+  const handleGroupPress = useCallback((group: SpotGroup) => {
     // Map markers aren't Pressable but are still a tap-driven control, so we
     // give them the same light feedback as the other buttons. Tapping selects
-    // the spot and zooms in; the SpotSheet then rises from the bottom.
+    // the group and zooms in; the SpotSheet then rises from the bottom.
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedSpotId(spot.id);
+    setSelectedGroupId(group.id);
     const zoom = 16;
     const focus = focusCoordinateAboveSheet(
-      spot.lat,
-      spot.lng,
+      group.lat,
+      group.lng,
       zoom,
       Dimensions.get("window").height,
     );
@@ -272,7 +275,7 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [loadSpots]);
 
-  const selectedSpot = spots.find((s) => s.id === selectedSpotId) ?? null;
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId) ?? null;
 
   return (
     <View style={styles.container}>
@@ -280,9 +283,9 @@ export function HomeScreen({ navigation }: Props) {
         ref={mapRef}
         style={styles.map}
         initialRegion={INITIAL_REGION}
-        spots={spots}
-        onSpotPress={handleSpotPress}
-        selectedSpotId={selectedSpotId}
+        groups={groups}
+        onGroupPress={handleGroupPress}
+        selectedGroupId={selectedGroupId}
         showsUserLocation={locationGranted}
       />
 
@@ -406,8 +409,8 @@ export function HomeScreen({ navigation }: Props) {
       </Pressable>
 
       <SpotSheet
-        spot={selectedSpot}
-        onClose={() => setSelectedSpotId(null)}
+        group={selectedGroup}
+        onClose={() => setSelectedGroupId(null)}
       />
     </View>
   );

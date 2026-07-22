@@ -2,8 +2,9 @@ import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
-import type { Spot } from "../lib/spots";
+import type { SpotGroup } from "../lib/spotGroups";
 import { SpotThumbnail } from "./SpotThumbnail";
+import { markerLabel } from "./markerLabel";
 
 export interface MapRegion {
   latitude: number;
@@ -23,9 +24,9 @@ export interface AppMapRef {
 
 interface AppMapProps {
   initialRegion: MapRegion;
-  spots?: Spot[];
-  onSpotPress?: (spot: Spot) => void;
-  selectedSpotId?: string | null;
+  groups?: SpotGroup[];
+  onGroupPress?: (group: SpotGroup) => void;
+  selectedGroupId?: string | null;
   showsUserLocation?: boolean;
   scrollEnabled?: boolean;
   zoomEnabled?: boolean;
@@ -36,8 +37,8 @@ interface AppMapProps {
 }
 
 interface IosSpotMarkerProps {
-  spot: Spot;
-  onPress?: (spot: Spot) => void;
+  group: SpotGroup;
+  onPress?: (group: SpotGroup) => void;
   selected: boolean;
 }
 
@@ -52,20 +53,23 @@ interface IosSpotMarkerProps {
 // `onPress` (backed by react-native-maps' own UITapGestureRecognizer on the
 // marker view) never fires in this environment; MapKit's native selection
 // callback (`onSelect`) does, so taps are driven from that instead.
-function IosSpotMarker({ spot, onPress, selected }: IosSpotMarkerProps) {
+function IosSpotMarker({ group, onPress, selected }: IosSpotMarkerProps) {
   const [height, setHeight] = useState(0);
+  const newest = group.spots[0];
+  if (!newest) return null;
 
   return (
     <Marker
-      coordinate={{ latitude: spot.lat, longitude: spot.lng }}
+      coordinate={{ latitude: group.lat, longitude: group.lng }}
       centerOffset={{ x: 0, y: -height / 2 }}
-      onSelect={() => onPress?.(spot)}
+      onSelect={() => onPress?.(group)}
     >
       <View onLayout={(e) => setHeight(e.nativeEvent.layout.height)}>
         <SpotThumbnail
-          photoPath={spot.photo_path}
+          photoPath={newest.photo_path}
           selected={selected}
-          takenAt={spot.taken_at}
+          label={markerLabel(group)}
+          count={group.spots.length}
         />
       </View>
     </Marker>
@@ -75,9 +79,9 @@ function IosSpotMarker({ spot, onPress, selected }: IosSpotMarkerProps) {
 export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
   {
     initialRegion,
-    spots,
-    onSpotPress,
-    selectedSpotId,
+    groups,
+    onGroupPress,
+    selectedGroupId,
     showsUserLocation = false,
     scrollEnabled = true,
     zoomEnabled = true,
@@ -127,12 +131,12 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
           : undefined
       }
     >
-      {spots?.map((spot) => (
+      {groups?.map((group) => (
         <IosSpotMarker
-          key={spot.id}
-          spot={spot}
-          onPress={onSpotPress}
-          selected={spot.id === selectedSpotId}
+          key={group.id}
+          group={group}
+          onPress={onGroupPress}
+          selected={group.id === selectedGroupId}
         />
       ))}
     </MapView>
