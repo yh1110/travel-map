@@ -103,10 +103,23 @@ function SpotSheetContent({
   const { animatedIndex } = useBottomSheet();
   const aspectRatio = usePhotoAspectRatio(resolvePhotoUrl(spot.photo_path));
   const [collapsedFrame, setCollapsedFrame] = useState<PhotoFrame>(EMPTY_FRAME);
+  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+  // Explicit size instead of StyleSheet.absoluteFill: absoluteFill derives its
+  // height from the parent via top:0/bottom:0, but this sits in the
+  // BottomSheetView content, which measures height 0 here (gorhom with
+  // enableDynamicSizing off doesn't stretch the flex:1 content). A fixed-height
+  // child like the photo still renders past that zero-height bound, but
+  // natural-flow content below it (title/meta text) was clipping - same root
+  // cause as the SpotHeroBackdrop black-background bug.
+  const fullScreenStyle = {
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    width: screenWidth,
+    height: screenHeight,
+  };
 
   const expandedFrame = useMemo<PhotoFrame>(() => {
-    const { width: screenWidth, height: screenHeight } =
-      Dimensions.get("window");
     const rawHeight = screenWidth / aspectRatio;
     const height = Math.min(
       Math.max(rawHeight, screenHeight * MIN_HERO_FRACTION),
@@ -152,13 +165,13 @@ function SpotSheetContent({
         />
       )}
       <Animated.View
-        style={[StyleSheet.absoluteFill, collapsedStyle]}
+        style={[fullScreenStyle, collapsedStyle]}
         pointerEvents={expanded ? "none" : "box-none"}
       >
         <SpotSheetCollapsed spot={spot} onPhotoLayout={setCollapsedFrame} />
       </Animated.View>
       <Animated.View
-        style={[StyleSheet.absoluteFill, expandedStyle]}
+        style={[fullScreenStyle, expandedStyle]}
         pointerEvents={expanded ? "box-none" : "none"}
       >
         <SpotSheetExpanded spot={spot} onCollapse={onCollapse} />
