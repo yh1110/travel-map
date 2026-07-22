@@ -64,7 +64,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 4,
+    // The sheet no longer has a layout-occupying handle (it's an overlay
+    // drawn by SpotSheet), so leave room for it above the photo here.
+    paddingTop: 28,
   },
   photoWrap: {
     height: 220,

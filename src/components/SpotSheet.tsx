@@ -67,6 +67,11 @@ function SpotSheetBackground(props: BottomSheetBackgroundProps) {
 
 // The drag handle only makes sense on the collapsed card - fade it out
 // early so it's gone well before the dark expanded page takes over.
+// Rendered as an overlay INSIDE the content instead of via gorhom's
+// handleComponent: a handle component occupies layout height above the
+// content (BottomSheetBody is column-reverse), which at the 100% snap point
+// left a content-free strip at the very top of the screen where only the
+// dark sheet background showed - a black band above the backdrop.
 function SpotSheetHandle() {
   const { animatedIndex } = useBottomSheet();
   const animatedStyle = useAnimatedStyle(() => ({
@@ -79,7 +84,10 @@ function SpotSheetHandle() {
   }));
 
   return (
-    <Animated.View style={[styles.handleContainer, animatedStyle]}>
+    <Animated.View
+      style={[styles.handleContainer, animatedStyle]}
+      pointerEvents="none"
+    >
       <View style={styles.handleIndicator} />
     </Animated.View>
   );
@@ -176,6 +184,7 @@ function SpotSheetContent({
       >
         <SpotSheetExpanded spot={spot} onCollapse={onCollapse} />
       </Animated.View>
+      <SpotSheetHandle />
     </View>
   );
 }
@@ -224,7 +233,7 @@ export function SpotSheet({ spot, onClose }: SpotSheetProps) {
       enablePanDownToClose
       onChange={handleChange}
       backgroundComponent={SpotSheetBackground}
-      handleComponent={SpotSheetHandle}
+      handleComponent={null}
     >
       <BottomSheetView style={styles.content}>
         {renderedSpot != null && (
@@ -251,9 +260,11 @@ const styles = StyleSheet.create({
     elevation: 24,
   },
   handleContainer: {
+    position: "absolute",
+    top: 12,
+    left: 0,
+    right: 0,
     alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 8,
   },
   handleIndicator: {
     width: 38,
