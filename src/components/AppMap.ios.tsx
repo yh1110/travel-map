@@ -1,4 +1,11 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ElementRef,
+} from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
@@ -55,11 +62,24 @@ interface IosSpotMarkerProps {
 // callback (`onSelect`) does, so taps are driven from that instead.
 function IosSpotMarker({ group, onPress, selected }: IosSpotMarkerProps) {
   const [height, setHeight] = useState(0);
+  const markerRef = useRef<ElementRef<typeof Marker>>(null);
   const newest = group.spots[0];
+
+  // `onSelect` only fires on MapKit's deselected -> selected transition, and
+  // MapKit keeps the annotation selected after a tap even once the app-level
+  // selection is cleared (sheet closed) - so re-tapping the same marker was
+  // dead. hideCallout() runs `deselectAnnotation` natively (verified in
+  // RNMapsMarkerView.mm), re-arming the next tap; it's a no-op while the
+  // annotation isn't selected.
+  useEffect(() => {
+    if (!selected) markerRef.current?.hideCallout();
+  }, [selected]);
+
   if (!newest) return null;
 
   return (
     <Marker
+      ref={markerRef}
       coordinate={{ latitude: group.lat, longitude: group.lng }}
       centerOffset={{ x: 0, y: -height / 2 }}
       onSelect={() => onPress?.(group)}
