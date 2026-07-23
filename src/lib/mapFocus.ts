@@ -11,7 +11,7 @@ const FOCUS_FRACTION_OF_VISIBLE_AREA = 0.68;
 // camera center east by this many px moves the pin left on screen.
 // Multi-photo (stacked) markers DON'T show the bias - applying the nudge to
 // them pushed them left - so it's single-photo only.
-const SINGLE_PHOTO_HORIZONTAL_PIXEL_NUDGE = 6;
+const SINGLE_PHOTO_HORIZONTAL_PIXEL_NUDGE = 9;
 
 export interface FocusRegion {
   latitude: number;

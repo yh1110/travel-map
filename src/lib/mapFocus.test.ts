@@ -11,8 +11,8 @@ describe("focusRegionAboveSheet", () => {
 
   const region = focusRegionAboveSheet(lat, lng, zoom, screenWidth, screenHeight);
 
-  it("nudges single-photo spots east by exactly 6px worth of longitude", () => {
-    const nudge = (6 / screenWidth) * region.longitudeDelta;
+  it("nudges single-photo spots east by exactly 9px worth of longitude", () => {
+    const nudge = (9 / screenWidth) * region.longitudeDelta;
     expect(region.longitude).toBeCloseTo(lng + nudge, 12);
   });
 
