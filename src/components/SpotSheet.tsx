@@ -198,11 +198,7 @@ function SpotSheetContent({
           expandedFrame={expandedFrame}
         />
       )}
-      <SpotPhotoPager
-        spots={group.spots}
-        index={boundedIndex}
-        trackX={trackX}
-      />
+      <SpotPhotoPager group={group} index={boundedIndex} trackX={trackX} />
       <Animated.View
         style={[fullScreenStyle, collapsedStyle]}
         pointerEvents={expanded ? "none" : "box-none"}
