@@ -23,8 +23,8 @@ describe("focusRegionAboveSheet", () => {
     // Screen-y fraction of the pin: center is at 0.5; each latitudeDelta
     // fraction north of center moves it up proportionally.
     const pinYFraction = 0.5 - (lat - region.latitude) / region.latitudeDelta;
-    // Designed: 85% into the visible (non-sheet) 42% of the screen.
-    const expected = ((1 - 0.58) * 0.85 * screenHeight) / screenHeight;
+    // Designed: 75% into the visible (non-sheet) 42% of the screen.
+    const expected = ((1 - 0.58) * 0.75 * screenHeight) / screenHeight;
     expect(pinYFraction).toBeCloseTo(expected, 10);
   });
 

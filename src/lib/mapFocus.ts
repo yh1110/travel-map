@@ -4,7 +4,7 @@
 const SHEET_COLLAPSED_FRACTION = 0.58;
 // Where in the remaining visible area (above the sheet) the spot should sit,
 // as a fraction of that area's height.
-const FOCUS_FRACTION_OF_VISIBLE_AREA = 0.85;
+const FOCUS_FRACTION_OF_VISIBLE_AREA = 0.75;
 
 export interface FocusRegion {
   latitude: number;
