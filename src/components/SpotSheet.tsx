@@ -37,8 +37,8 @@ const SNAP_POINTS = ["58%", "100%"];
 // Settle curve for moving the pager onto a page after a thumbnail tap while
 // expanded: fast start, gliding ease-out stop. Duplicated as SETTLE_EASING
 // in SpotSheetExpanded.
-const PAGER_EASING = Easing.bezier(0.16, 1, 0.3, 1);
-const PAGER_TIMING = { duration: 340, easing: PAGER_EASING };
+const PAGER_EASING = Easing.bezier(0.33, 1, 0.68, 1);
+const PAGER_TIMING = { duration: 420, easing: PAGER_EASING };
 
 // Background swaps from the light collapsed card to the dark expanded page
 // as the drag crosses the midpoint between snap points 0 and 1.

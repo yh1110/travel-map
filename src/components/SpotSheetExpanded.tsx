@@ -26,10 +26,11 @@ import { CloseIcon } from "./SpotSheetIcons";
 const STRIP_MAX = 4;
 
 // Settle curve: a clamped spring read as near-constant speed with an abrupt
-// stop - the "等速" jank. This ease-out bezier starts faster than the finger
-// and glides to rest (YouTube-Shorts-like). Matches PAGER_EASING in
-// SpotSheet.tsx (not imported to avoid a require cycle).
-const SETTLE_EASING = Easing.bezier(0.16, 1, 0.3, 1);
+// stop - the "等速" jank. Ease-out cubic: a gentler initial kick than the
+// expo-style bezier (which launched too fast), still gliding to rest.
+// Matches PAGER_EASING in SpotSheet.tsx (not imported to avoid a require
+// cycle).
+const SETTLE_EASING = Easing.bezier(0.33, 1, 0.68, 1);
 
 // How far ahead (in seconds) the release velocity is projected when picking
 // the page to settle on - the standard momentum-pager heuristic. 0.25s means
@@ -113,7 +114,7 @@ export function SpotSheetExpanded({
       // Duration scales with the remaining distance so short settles stay
       // snappy and full-page ones don't feel rushed.
       const remaining = Math.abs(-target * screenWidth - trackX.value);
-      const duration = 200 + Math.min(180, (remaining / screenWidth) * 180);
+      const duration = 240 + Math.min(220, (remaining / screenWidth) * 220);
 
       // Commit the index only once the settle lands: firing it at release
       // triggered a React re-render (page window shift, chrome update) right
