@@ -8,9 +8,10 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
+  Easing,
   runOnJS,
   useSharedValue,
-  withSpring,
+  withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,14 +25,11 @@ import { CloseIcon } from "./SpotSheetIcons";
 // "+N" tile like the mock.
 const STRIP_MAX = 4;
 
-// Matches PAGER_SPRING in SpotSheet.tsx (not imported to avoid a require
-// cycle between the sheet and its content components). Fast decisive snap
-// (YouTube-Shorts-like) with a slightly soft tail, no wobble.
-const SETTLE_SPRING = {
-  damping: 42,
-  stiffness: 380,
-  overshootClamping: true,
-};
+// Settle curve: a clamped spring read as near-constant speed with an abrupt
+// stop - the "等速" jank. This ease-out bezier starts faster than the finger
+// and glides to rest (YouTube-Shorts-like). Matches PAGER_EASING in
+// SpotSheet.tsx (not imported to avoid a require cycle).
+const SETTLE_EASING = Easing.bezier(0.16, 1, 0.3, 1);
 
 // How far ahead (in seconds) the release velocity is projected when picking
 // the page to settle on - the standard momentum-pager heuristic. 0.25s means
@@ -112,12 +110,17 @@ export function SpotSheetExpanded({
       else if (projectedOffset < -screenWidth * FLIP_FRACTION) target = index - 1;
       target = Math.min(count - 1, Math.max(0, target));
 
+      // Duration scales with the remaining distance so short settles stay
+      // snappy and full-page ones don't feel rushed.
+      const remaining = Math.abs(-target * screenWidth - trackX.value);
+      const duration = 200 + Math.min(180, (remaining / screenWidth) * 180);
+
       // Commit the index only once the settle lands: firing it at release
       // triggered a React re-render (page window shift, chrome update) right
-      // as the spring started, hitching its first frames.
-      trackX.value = withSpring(
+      // as the settle started, hitching its first frames.
+      trackX.value = withTiming(
         -target * screenWidth,
-        { ...SETTLE_SPRING, velocity: e.velocityX },
+        { duration, easing: SETTLE_EASING },
         (finished) => {
           if (finished && target !== index) runOnJS(onSwipeToIndex)(target);
         },

@@ -6,12 +6,13 @@ import BottomSheet, {
   type BottomSheetBackgroundProps,
 } from "@gorhom/bottom-sheet";
 import Animated, {
+  Easing,
   Extrapolation,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
 import { expandedFrameForRatio, type PhotoFrame } from "../lib/heroFrame";
@@ -33,13 +34,11 @@ interface SpotSheetProps {
 // the screen. enableDynamicSizing is off so only these points are used.
 const SNAP_POINTS = ["58%", "100%"];
 
-// Spring used to settle the pager onto a page after a swipe or a thumbnail
-// tap while expanded. Duplicated as SETTLE_SPRING in SpotSheetExpanded.
-const PAGER_SPRING = {
-  damping: 42,
-  stiffness: 380,
-  overshootClamping: true,
-};
+// Settle curve for moving the pager onto a page after a thumbnail tap while
+// expanded: fast start, gliding ease-out stop. Duplicated as SETTLE_EASING
+// in SpotSheetExpanded.
+const PAGER_EASING = Easing.bezier(0.16, 1, 0.3, 1);
+const PAGER_TIMING = { duration: 340, easing: PAGER_EASING };
 
 // Background swaps from the light collapsed card to the dark expanded page
 // as the drag crosses the midpoint between snap points 0 and 1.
@@ -140,7 +139,7 @@ function SpotSheetContent({
       return;
     }
     const target = -boundedIndex * screenWidth;
-    trackX.value = expanded ? withSpring(target, PAGER_SPRING) : target;
+    trackX.value = expanded ? withTiming(target, PAGER_TIMING) : target;
   }, [boundedIndex, group.id]);
   const handleSwipeSelect = useCallback(
     (i: number) => {
