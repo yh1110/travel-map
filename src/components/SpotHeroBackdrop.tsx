@@ -20,10 +20,12 @@ export function SpotHeroBackdrop({ photoPath }: SpotHeroBackdropProps) {
   const { animatedIndex } = useBottomSheet();
   const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
   const animatedStyle = useAnimatedStyle(() => ({
+    // Fades in through the expand drag, then hands off to SpotPhotoPager
+    // (whose pages carry their own identical backdrop) at full expansion.
     opacity: interpolate(
       animatedIndex.value,
-      [0.4, 1],
-      [0, 1],
+      [0.4, 0.9, 0.98],
+      [0, 1, 0],
       Extrapolation.CLAMP,
     ),
   }));

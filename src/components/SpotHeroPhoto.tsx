@@ -6,15 +6,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { useBottomSheet } from "@gorhom/bottom-sheet";
 
+import type { PhotoFrame } from "../lib/heroFrame";
 import { resolvePhotoUrl } from "../lib/supabase";
 
-export interface PhotoFrame {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  borderRadius: number;
-}
+export type { PhotoFrame };
 
 interface SpotHeroPhotoProps {
   photoPath: string;
@@ -53,6 +48,9 @@ export function SpotHeroPhoto({
         expandedFrame.borderRadius,
       ),
       overflow: "hidden",
+      // Hand off to SpotPhotoPager right at full expansion: it renders the
+      // current photo with identical framing, so this crossfade is invisible.
+      opacity: interpolate(t, [0.9, 0.98], [1, 0], Extrapolation.CLAMP),
     };
   });
 

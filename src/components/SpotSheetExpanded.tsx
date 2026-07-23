@@ -1,7 +1,18 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
+import {
+  runOnJS,
+  withSpring,
+  type SharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatRelativeTime, formatTakenAt } from "../lib/format";
@@ -24,10 +35,22 @@ const META_COLOR = "rgba(255,255,255,0.6)";
 // "+N" tile like the mock.
 const STRIP_MAX = 4;
 
+// Matches PAGER_SPRING in SpotSheet.tsx (not imported to avoid a require
+// cycle between the sheet and its content components).
+const SETTLE_SPRING = {
+  damping: 30,
+  stiffness: 280,
+  overshootClamping: true,
+};
+
 interface SpotSheetExpandedProps {
   group: SpotGroup;
   currentIndex: number;
   onSelectIndex: (index: number) => void;
+  /** Index change originating from the swipe itself (settle pre-animated). */
+  onSwipeToIndex: (index: number) => void;
+  /** The full-screen pager's track position, dragged directly by the swipe. */
+  trackX: SharedValue<number>;
   onCollapse: () => void;
 }
 
@@ -35,32 +58,56 @@ export function SpotSheetExpanded({
   group,
   currentIndex,
   onSelectIndex,
+  onSwipeToIndex,
+  trackX,
   onCollapse,
 }: SpotSheetExpandedProps) {
   const insets = useSafeAreaInsets();
   const place = useRoughAddress(group.lat, group.lng);
+  const { width: screenWidth } = Dimensions.get("window");
 
   const spots = group.spots;
-  const index = Math.min(currentIndex, spots.length - 1);
+  const count = spots.length;
+  const index = Math.min(currentIndex, count - 1);
   const spot = spots[index] ?? spots[0];
-  const multi = spots.length > 1;
+  const multi = count > 1;
 
-  const step = (delta: number) => {
-    const next = index + delta;
-    if (next >= 0 && next < spots.length) onSelectIndex(next);
-  };
-
-  // Horizontal swipe moves between the photos of this location. Activates
+  // Whole-screen swipe between the photos of this location: the pager track
+  // follows the finger continuously (rubber-banding past the ends), then
+  // settles on the nearest page - or the next one on a fast flick. Activates
   // only on a clearly horizontal drag so it doesn't fight the sheet's own
-  // vertical pan (which fails this gesture via failOffsetY).
+  // vertical pan (which this fails via failOffsetY).
   const swipe = Gesture.Pan()
     .enabled(multi)
     .activeOffsetX([-15, 15])
     .failOffsetY([-15, 15])
+    .onChange((e) => {
+      "worklet";
+      let tx = e.translationX;
+      if ((index === 0 && tx > 0) || (index === count - 1 && tx < 0)) {
+        tx = tx / 3;
+      }
+      trackX.value = -index * screenWidth + tx;
+    })
     .onEnd((e) => {
       "worklet";
-      if (e.translationX < -50) runOnJS(step)(1);
-      else if (e.translationX > 50) runOnJS(step)(-1);
+      let target = index;
+      if (
+        (e.translationX < -screenWidth * 0.25 || e.velocityX < -600) &&
+        index < count - 1
+      ) {
+        target = index + 1;
+      } else if (
+        (e.translationX > screenWidth * 0.25 || e.velocityX > 600) &&
+        index > 0
+      ) {
+        target = index - 1;
+      }
+      trackX.value = withSpring(-target * screenWidth, {
+        ...SETTLE_SPRING,
+        velocity: e.velocityX,
+      });
+      if (target !== index) runOnJS(onSwipeToIndex)(target);
     });
 
   if (!spot) return null;

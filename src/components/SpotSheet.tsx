@@ -10,13 +10,17 @@ import Animated, {
   interpolate,
   interpolateColor,
   useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
 
+import { expandedFrameForRatio, type PhotoFrame } from "../lib/heroFrame";
 import { usePhotoAspectRatio } from "../lib/imageSize";
 import type { SpotGroup } from "../lib/spotGroups";
 import { resolvePhotoUrl } from "../lib/supabase";
 import { SpotHeroBackdrop } from "./SpotHeroBackdrop";
-import { SpotHeroPhoto, type PhotoFrame } from "./SpotHeroPhoto";
+import { SpotHeroPhoto } from "./SpotHeroPhoto";
+import { SpotPhotoPager } from "./SpotPhotoPager";
 import { SpotSheetCollapsed } from "./SpotSheetCollapsed";
 import { SpotSheetExpanded } from "./SpotSheetExpanded";
 
@@ -29,11 +33,13 @@ interface SpotSheetProps {
 // the screen. enableDynamicSizing is off so only these points are used.
 const SNAP_POINTS = ["58%", "100%"];
 
-// Keep the expanded hero within a sane range regardless of the photo's own
-// aspect ratio - a very wide pano or a very tall portrait would otherwise
-// end up absurdly short or crowd out the text below it.
-const MIN_HERO_FRACTION = 0.35;
-const MAX_HERO_FRACTION = 0.72;
+// Spring used to settle the pager onto a page after a swipe or a thumbnail
+// tap while expanded. Duplicated as SETTLE_SPRING in SpotSheetExpanded.
+const PAGER_SPRING = {
+  damping: 30,
+  stiffness: 280,
+  overshootClamping: true,
+};
 
 // Background swaps from the light collapsed card to the dark expanded page
 // as the drag crosses the midpoint between snap points 0 and 1.
@@ -113,14 +119,36 @@ function SpotSheetContent({
   expanded: boolean;
 }) {
   const { animatedIndex } = useBottomSheet();
-  const spot =
-    group.spots[Math.min(currentIndex, group.spots.length - 1)] ??
-    group.spots[0];
+  const boundedIndex = Math.min(currentIndex, group.spots.length - 1);
+  const spot = group.spots[boundedIndex] ?? group.spots[0];
   const aspectRatio = usePhotoAspectRatio(
     spot ? resolvePhotoUrl(spot.photo_path) : "",
   );
   const [collapsedFrame, setCollapsedFrame] = useState<PhotoFrame>(EMPTY_FRAME);
   const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+  // Horizontal pager track: -index * screenWidth when settled on a page.
+  // The expanded swipe gesture (SpotSheetExpanded) drags it directly and
+  // animates its own settle, flagging the resulting index change here so
+  // this sync doesn't restart the spring; thumbnail taps come through
+  // without the flag and get animated (expanded) or snapped (collapsed).
+  const trackX = useSharedValue(0);
+  const swipeSyncSkip = useRef(false);
+  useEffect(() => {
+    if (swipeSyncSkip.current) {
+      swipeSyncSkip.current = false;
+      return;
+    }
+    const target = -boundedIndex * screenWidth;
+    trackX.value = expanded ? withSpring(target, PAGER_SPRING) : target;
+  }, [boundedIndex, group.id]);
+  const handleSwipeSelect = useCallback(
+    (i: number) => {
+      swipeSyncSkip.current = true;
+      onSelectIndex(i);
+    },
+    [onSelectIndex],
+  );
   // Explicit size instead of StyleSheet.absoluteFill: absoluteFill derives its
   // height from the parent via top:0/bottom:0, but this sits in the
   // BottomSheetView content, which measures height 0 here (gorhom with
@@ -136,23 +164,10 @@ function SpotSheetContent({
     height: screenHeight,
   };
 
-  const expandedFrame = useMemo<PhotoFrame>(() => {
-    const rawHeight = screenWidth / aspectRatio;
-    const height = Math.min(
-      Math.max(rawHeight, screenHeight * MIN_HERO_FRACTION),
-      screenHeight * MAX_HERO_FRACTION,
-    );
-    // Keep this exact aspect ratio at that height. For portrait photos this
-    // comes out narrower than the screen once height gets capped - center
-    // it instead of stretching/cropping it to fill the full width.
-    const width = Math.min(height * aspectRatio, screenWidth);
-    // Center in the full viewport (both axes), Google-Maps-photo-viewer style:
-    // the sharp photo floats in the middle with the blurred copy filling every
-    // edge around it, rather than being pinned to the top over a dark slab.
-    const x = (screenWidth - width) / 2;
-    const y = (screenHeight - height) / 2;
-    return { x, y, width, height, borderRadius: 0 };
-  }, [aspectRatio]);
+  const expandedFrame = useMemo<PhotoFrame>(
+    () => expandedFrameForRatio(aspectRatio, screenWidth, screenHeight),
+    [aspectRatio, screenWidth, screenHeight],
+  );
 
   const collapsedStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -183,6 +198,11 @@ function SpotSheetContent({
           expandedFrame={expandedFrame}
         />
       )}
+      <SpotPhotoPager
+        spots={group.spots}
+        index={boundedIndex}
+        trackX={trackX}
+      />
       <Animated.View
         style={[fullScreenStyle, collapsedStyle]}
         pointerEvents={expanded ? "none" : "box-none"}
@@ -202,6 +222,8 @@ function SpotSheetContent({
           group={group}
           currentIndex={currentIndex}
           onSelectIndex={onSelectIndex}
+          onSwipeToIndex={handleSwipeSelect}
+          trackX={trackX}
           onCollapse={onCollapse}
         />
       </Animated.View>
