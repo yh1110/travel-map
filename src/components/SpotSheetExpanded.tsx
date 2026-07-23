@@ -96,28 +96,31 @@ export function SpotSheetExpanded({
     })
     .onEnd((e) => {
       "worklet";
+      // Base the one-page-per-swipe limit on the page the GESTURE started
+      // from (track position), not the committed React index: interrupting
+      // a settle mid-flight leaves the committed index one page behind, and
+      // clamping against it yanked consecutive swipes back ("stuck").
+      const baseIndex = Math.min(
+        count - 1,
+        Math.max(0, Math.round(-startX.value / screenWidth)),
+      );
       const target = settleTargetIndex(
         trackX.value,
-        index,
+        baseIndex,
         e.velocityX,
         screenWidth,
         count,
       );
       const remaining = Math.abs(-target * screenWidth - trackX.value);
 
-      // Commit the index only once the settle lands: firing it at release
-      // triggered a React re-render (page window shift, chrome update) right
-      // as the settle started, hitching its first frames.
-      trackX.value = withTiming(
-        -target * screenWidth,
-        {
-          duration: settleDurationMs(remaining, screenWidth),
-          easing: SETTLE_EASING,
-        },
-        (finished) => {
-          if (finished && target !== index) runOnJS(onSwipeToIndex)(target);
-        },
-      );
+      trackX.value = withTiming(-target * screenWidth, {
+        duration: settleDurationMs(remaining, screenWidth),
+        easing: SETTLE_EASING,
+      });
+      // Commit immediately: deferring this to the animation callback meant
+      // an interrupted settle never committed at all, leaving the next
+      // swipe computed against a stale index.
+      if (target !== index) runOnJS(onSwipeToIndex)(target);
     });
 
   if (!spot) return null;

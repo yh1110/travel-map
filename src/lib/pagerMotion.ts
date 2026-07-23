@@ -15,10 +15,17 @@ export const SETTLE_BEZIER = [0.33, 1, 0.68, 1] as const;
 
 /** Horizontal movement (px) that activates the photo swipe. */
 export const SWIPE_ACTIVE_OFFSET_X = 10;
-/** Vertical movement (px) at which the photo swipe gives up (sheet pan). */
-export const SWIPE_FAIL_OFFSET_Y = 15;
-/** Vertical movement (px) that activates the sheet's own pan. */
-export const SHEET_PAN_ACTIVE_OFFSET_Y = 8;
+/**
+ * Vertical movement (px) at which the photo swipe gives up (sheet pan).
+ * Generous: rapid consecutive flicks arc vertically, and a tight limit made
+ * them die ("stuck" swipes).
+ */
+export const SWIPE_FAIL_OFFSET_Y = 22;
+/**
+ * Vertical movement (px) that activates the sheet's own pan. High enough
+ * that a sloppy-but-horizontal flick doesn't lose the race to the sheet.
+ */
+export const SHEET_PAN_ACTIVE_OFFSET_Y = 14;
 /** Horizontal movement (px) at which the sheet's pan gives up (swipe). */
 export const SHEET_PAN_FAIL_OFFSET_X = 14;
 
