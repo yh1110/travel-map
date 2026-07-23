@@ -25,6 +25,7 @@ export interface AppMapRef {
     zoom: number,
     durationMs: number,
   ) => void;
+  animateToRegion: (region: MapRegion, durationMs: number) => void;
 }
 
 interface AppMapProps {
@@ -68,6 +69,13 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
       cameraRef.current?.easeTo({
         center: [lng, lat],
         zoom,
+        duration: durationMs,
+      });
+    },
+    animateToRegion(region, durationMs) {
+      cameraRef.current?.easeTo({
+        center: [region.longitude, region.latitude],
+        zoom: longitudeDeltaToZoom(region.longitudeDelta),
         duration: durationMs,
       });
     },

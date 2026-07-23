@@ -27,6 +27,7 @@ export interface AppMapRef {
     zoom: number,
     durationMs: number,
   ) => void;
+  animateToRegion: (region: MapRegion, durationMs: number) => void;
 }
 
 interface AppMapProps {
@@ -130,6 +131,12 @@ export const AppMap = forwardRef<AppMapRef, AppMapProps>(function AppMap(
         { center: { latitude: lat, longitude: lng }, altitude },
         { duration: durationMs },
       );
+    },
+    animateToRegion(region, durationMs) {
+      // Exact placement (unlike the altitude approximation above): MapKit
+      // honors the latitude span, so screen offsets expressed as fractions
+      // of latitudeDelta land where computed.
+      mapRef.current?.animateToRegion(region, durationMs);
     },
   }));
 

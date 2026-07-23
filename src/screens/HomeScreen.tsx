@@ -20,7 +20,7 @@ import { AppMap, type AppMapRef } from "../components/AppMap";
 import { SpotSheet } from "../components/SpotSheet";
 import { parseExifDate } from "../lib/format";
 import { resolveRoughAddress } from "../lib/geocode";
-import { focusCoordinateAboveSheet } from "../lib/mapFocus";
+import { focusRegionAboveSheet } from "../lib/mapFocus";
 import { groupSpotsByLocation, type SpotGroup } from "../lib/spotGroups";
 import { createSpot, fetchSpots, type Spot } from "../lib/spots";
 import type { RootStackParamList } from "../navigation/types";
@@ -197,14 +197,9 @@ export function HomeScreen({ navigation }: Props) {
     // the group and zooms in; the SpotSheet then rises from the bottom.
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedGroupId(group.id);
-    const zoom = 16;
-    const focus = focusCoordinateAboveSheet(
-      group.lat,
-      group.lng,
-      zoom,
-      Dimensions.get("window").height,
-    );
-    mapRef.current?.animateToLocation(focus.lat, focus.lng, zoom, 1000);
+    const { width, height } = Dimensions.get("window");
+    const region = focusRegionAboveSheet(group.lat, group.lng, 16, width, height);
+    mapRef.current?.animateToRegion(region, 1000);
   }, []);
 
   const handlePost = useCallback(async () => {
