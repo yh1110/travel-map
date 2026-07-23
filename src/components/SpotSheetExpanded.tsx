@@ -55,7 +55,7 @@ export function SpotSheetExpanded({
   // vertical pan (which fails this gesture via failOffsetY).
   const swipe = Gesture.Pan()
     .enabled(multi)
-    .activeOffsetX([-25, 25])
+    .activeOffsetX([-15, 15])
     .failOffsetY([-15, 15])
     .onEnd((e) => {
       "worklet";

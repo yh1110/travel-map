@@ -264,6 +264,12 @@ export function SpotSheet({ group, onClose }: SpotSheetProps) {
       onChange={handleChange}
       backgroundComponent={SpotSheetBackground}
       handleComponent={null}
+      // Without these, gorhom's content pan activates on ANY drag direction
+      // and swallows horizontal gestures (the expanded photo swipe and the
+      // collapsed thumbnail strip). Activate the sheet pan only on clearly
+      // vertical drags and make it fail on clearly horizontal ones.
+      activeOffsetY={[-8, 8]}
+      failOffsetX={[-14, 14]}
     >
       <BottomSheetView style={styles.content}>
         {renderedGroup != null && (
