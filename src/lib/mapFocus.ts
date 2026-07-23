@@ -5,6 +5,11 @@ const SHEET_COLLAPSED_FRACTION = 0.58;
 // Where in the remaining visible area (above the sheet) the spot should sit,
 // as a fraction of that area's height.
 const FOCUS_FRACTION_OF_VISIBLE_AREA = 0.68;
+// Single-photo markers render a hair right of dead center (same small bias
+// the pre-region implementation cancelled with a 6px nudge; root cause is
+// somewhere in the native marker rendering, not our math). Shifting the
+// camera center east by this many px moves the pin left on screen.
+const HORIZONTAL_PIXEL_NUDGE = 6;
 
 export interface FocusRegion {
   latitude: number;
@@ -47,6 +52,8 @@ export function focusRegionAboveSheet(
   const targetY = visibleHeight * FOCUS_FRACTION_OF_VISIBLE_AREA;
   const pinAboveCenterPx = screenHeight / 2 - targetY;
   const latitude = lat - (pinAboveCenterPx / screenHeight) * latitudeDelta;
+  const longitude =
+    lng + (HORIZONTAL_PIXEL_NUDGE / screenWidth) * longitudeDelta;
 
-  return { latitude, longitude: lng, latitudeDelta, longitudeDelta };
+  return { latitude, longitude, latitudeDelta, longitudeDelta };
 }

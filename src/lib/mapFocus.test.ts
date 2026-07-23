@@ -11,8 +11,9 @@ describe("focusRegionAboveSheet", () => {
 
   const region = focusRegionAboveSheet(lat, lng, zoom, screenWidth, screenHeight);
 
-  it("keeps the spot's longitude as the region center", () => {
-    expect(region.longitude).toBe(lng);
+  it("nudges the center east by exactly 6px worth of longitude", () => {
+    const nudge = (6 / screenWidth) * region.longitudeDelta;
+    expect(region.longitude).toBeCloseTo(lng + nudge, 12);
   });
 
   it("centers south of the spot so the pin renders above mid-screen", () => {
