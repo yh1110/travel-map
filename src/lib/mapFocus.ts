@@ -9,7 +9,9 @@ const FOCUS_FRACTION_OF_VISIBLE_AREA = 0.68;
 // the pre-region implementation cancelled with a 6px nudge; root cause is
 // somewhere in the native marker rendering, not our math). Shifting the
 // camera center east by this many px moves the pin left on screen.
-const HORIZONTAL_PIXEL_NUDGE = 6;
+// Multi-photo (stacked) markers DON'T show the bias - applying the nudge to
+// them pushed them left - so it's single-photo only.
+const SINGLE_PHOTO_HORIZONTAL_PIXEL_NUDGE = 6;
 
 export interface FocusRegion {
   latitude: number;
@@ -36,6 +38,7 @@ export function focusRegionAboveSheet(
   zoom: number,
   screenWidth: number,
   screenHeight: number,
+  photoCount: number = 1,
 ): FocusRegion {
   // Web Mercator ground resolution at this zoom - only used to pick the
   // region SIZE (how zoomed in we are), not the pin placement.
@@ -52,8 +55,8 @@ export function focusRegionAboveSheet(
   const targetY = visibleHeight * FOCUS_FRACTION_OF_VISIBLE_AREA;
   const pinAboveCenterPx = screenHeight / 2 - targetY;
   const latitude = lat - (pinAboveCenterPx / screenHeight) * latitudeDelta;
-  const longitude =
-    lng + (HORIZONTAL_PIXEL_NUDGE / screenWidth) * longitudeDelta;
+  const nudgePx = photoCount > 1 ? 0 : SINGLE_PHOTO_HORIZONTAL_PIXEL_NUDGE;
+  const longitude = lng + (nudgePx / screenWidth) * longitudeDelta;
 
   return { latitude, longitude, latitudeDelta, longitudeDelta };
 }

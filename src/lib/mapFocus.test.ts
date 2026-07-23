@@ -11,9 +11,14 @@ describe("focusRegionAboveSheet", () => {
 
   const region = focusRegionAboveSheet(lat, lng, zoom, screenWidth, screenHeight);
 
-  it("nudges the center east by exactly 6px worth of longitude", () => {
+  it("nudges single-photo spots east by exactly 6px worth of longitude", () => {
     const nudge = (6 / screenWidth) * region.longitudeDelta;
     expect(region.longitude).toBeCloseTo(lng + nudge, 12);
+  });
+
+  it("keeps multi-photo spots un-nudged (stacked markers show no bias)", () => {
+    const multi = focusRegionAboveSheet(lat, lng, zoom, screenWidth, screenHeight, 6);
+    expect(multi.longitude).toBe(lng);
   });
 
   it("centers south of the spot so the pin renders above mid-screen", () => {

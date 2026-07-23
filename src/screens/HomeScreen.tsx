@@ -198,7 +198,14 @@ export function HomeScreen({ navigation }: Props) {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedGroupId(group.id);
     const { width, height } = Dimensions.get("window");
-    const region = focusRegionAboveSheet(group.lat, group.lng, 16, width, height);
+    const region = focusRegionAboveSheet(
+      group.lat,
+      group.lng,
+      16,
+      width,
+      height,
+      group.spots.length,
+    );
     mapRef.current?.animateToRegion(region, 1000);
   }, []);
 
