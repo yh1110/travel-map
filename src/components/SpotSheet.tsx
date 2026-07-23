@@ -36,8 +36,8 @@ const SNAP_POINTS = ["58%", "100%"];
 // Spring used to settle the pager onto a page after a swipe or a thumbnail
 // tap while expanded. Duplicated as SETTLE_SPRING in SpotSheetExpanded.
 const PAGER_SPRING = {
-  damping: 45,
-  stiffness: 450,
+  damping: 42,
+  stiffness: 380,
   overshootClamping: true,
 };
 

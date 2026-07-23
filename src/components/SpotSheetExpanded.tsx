@@ -25,17 +25,21 @@ import { CloseIcon } from "./SpotSheetIcons";
 const STRIP_MAX = 4;
 
 // Matches PAGER_SPRING in SpotSheet.tsx (not imported to avoid a require
-// cycle between the sheet and its content components). Stiff and clamped:
-// a fast decisive snap (YouTube-Shorts-like), no wobble.
+// cycle between the sheet and its content components). Fast decisive snap
+// (YouTube-Shorts-like) with a slightly soft tail, no wobble.
 const SETTLE_SPRING = {
-  damping: 45,
-  stiffness: 450,
+  damping: 42,
+  stiffness: 380,
   overshootClamping: true,
 };
 
 // How far ahead (in seconds) the release velocity is projected when picking
-// the page to settle on - the standard momentum-pager heuristic.
-const VELOCITY_PROJECTION = 0.12;
+// the page to settle on - the standard momentum-pager heuristic. 0.25s means
+// a light ~600px/s flick alone is enough to flip a page.
+const VELOCITY_PROJECTION = 0.25;
+
+// Fraction of a page the projected position must cross to flip.
+const FLIP_FRACTION = 0.35;
 
 interface SpotSheetExpandedProps {
   group: SpotGroup;
@@ -82,7 +86,7 @@ export function SpotSheetExpanded({
   const startX = useSharedValue(0);
   const swipe = Gesture.Pan()
     .enabled(multi)
-    .activeOffsetX([-15, 15])
+    .activeOffsetX([-10, 10])
     .failOffsetY([-15, 15])
     .onStart(() => {
       "worklet";
@@ -99,21 +103,25 @@ export function SpotSheetExpanded({
     })
     .onEnd((e) => {
       "worklet";
-      const projected = -trackX.value - e.velocityX * VELOCITY_PROJECTION;
-      // One page per swipe (Shorts-like), and never onto a page the ±1
-      // window hasn't mounted yet.
-      const target = Math.min(
-        count - 1,
-        Math.max(
-          0,
-          Math.min(index + 1, Math.max(index - 1, Math.round(projected / screenWidth))),
-        ),
+      // Offset from the current page (+ = toward the next photo), with the
+      // release velocity projected ahead so a light flick flips the page.
+      const projectedOffset =
+        -trackX.value - index * screenWidth - e.velocityX * VELOCITY_PROJECTION;
+      let target = index;
+      if (projectedOffset > screenWidth * FLIP_FRACTION) target = index + 1;
+      else if (projectedOffset < -screenWidth * FLIP_FRACTION) target = index - 1;
+      target = Math.min(count - 1, Math.max(0, target));
+
+      // Commit the index only once the settle lands: firing it at release
+      // triggered a React re-render (page window shift, chrome update) right
+      // as the spring started, hitching its first frames.
+      trackX.value = withSpring(
+        -target * screenWidth,
+        { ...SETTLE_SPRING, velocity: e.velocityX },
+        (finished) => {
+          if (finished && target !== index) runOnJS(onSwipeToIndex)(target);
+        },
       );
-      trackX.value = withSpring(-target * screenWidth, {
-        ...SETTLE_SPRING,
-        velocity: e.velocityX,
-      });
-      if (target !== index) runOnJS(onSwipeToIndex)(target);
     });
 
   if (!spot) return null;

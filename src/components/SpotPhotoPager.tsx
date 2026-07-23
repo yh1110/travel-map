@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useBottomSheet } from "@gorhom/bottom-sheet";
@@ -44,7 +44,7 @@ interface SpotPhotoPagerProps {
 // actions) - Google-Maps-photo-viewer style, where a horizontal swipe
 // visibly slides everything on screen to the neighboring photo. Only
 // navigation chrome (top bar, film strip) stays fixed above this.
-function PagerPage({
+const PagerPage = memo(function PagerPage({
   spot,
   pageIndex,
   place,
@@ -158,7 +158,7 @@ function PagerPage({
       </View>
     </View>
   );
-}
+});
 
 /**
  * Full-screen horizontal pager shown only at the expanded (4b) snap point.
