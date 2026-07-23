@@ -17,6 +17,12 @@ import Animated, {
 
 import { expandedFrameForRatio, type PhotoFrame } from "../lib/heroFrame";
 import { usePhotoAspectRatio } from "../lib/imageSize";
+import {
+  SETTLE_BEZIER,
+  SHEET_PAN_ACTIVE_OFFSET_Y,
+  SHEET_PAN_FAIL_OFFSET_X,
+  TAP_SETTLE_DURATION_MS,
+} from "../lib/pagerMotion";
 import type { SpotGroup } from "../lib/spotGroups";
 import { resolvePhotoUrl } from "../lib/supabase";
 import { SpotHeroBackdrop } from "./SpotHeroBackdrop";
@@ -35,10 +41,11 @@ interface SpotSheetProps {
 const SNAP_POINTS = ["58%", "100%"];
 
 // Settle curve for moving the pager onto a page after a thumbnail tap while
-// expanded: fast start, gliding ease-out stop. Duplicated as SETTLE_EASING
-// in SpotSheetExpanded.
-const PAGER_EASING = Easing.bezier(0.33, 1, 0.68, 1);
-const PAGER_TIMING = { duration: 420, easing: PAGER_EASING };
+// expanded: same ease-out as the swipe settle (SpotSheetExpanded).
+const PAGER_TIMING = {
+  duration: TAP_SETTLE_DURATION_MS,
+  easing: Easing.bezier(...SETTLE_BEZIER),
+};
 
 // Background swaps from the light collapsed card to the dark expanded page
 // as the drag crosses the midpoint between snap points 0 and 1.
@@ -285,8 +292,8 @@ export function SpotSheet({ group, onClose }: SpotSheetProps) {
       // and swallows horizontal gestures (the expanded photo swipe and the
       // collapsed thumbnail strip). Activate the sheet pan only on clearly
       // vertical drags and make it fail on clearly horizontal ones.
-      activeOffsetY={[-8, 8]}
-      failOffsetX={[-14, 14]}
+      activeOffsetY={[-SHEET_PAN_ACTIVE_OFFSET_Y, SHEET_PAN_ACTIVE_OFFSET_Y]}
+      failOffsetX={[-SHEET_PAN_FAIL_OFFSET_X, SHEET_PAN_FAIL_OFFSET_X]}
     >
       <BottomSheetView style={styles.content}>
         {renderedGroup != null && (

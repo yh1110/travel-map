@@ -17,6 +17,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { formatRelativeTime } from "../lib/format";
+import {
+  rubberBandTrack,
+  SETTLE_BEZIER,
+  settleDurationMs,
+  settleTargetIndex,
+  SWIPE_ACTIVE_OFFSET_X,
+  SWIPE_FAIL_OFFSET_Y,
+} from "../lib/pagerMotion";
 import type { SpotGroup } from "../lib/spotGroups";
 import { resolvePhotoUrl } from "../lib/supabase";
 import { CloseIcon } from "./SpotSheetIcons";
@@ -25,20 +33,7 @@ import { CloseIcon } from "./SpotSheetIcons";
 // "+N" tile like the mock.
 const STRIP_MAX = 4;
 
-// Settle curve: a clamped spring read as near-constant speed with an abrupt
-// stop - the "等速" jank. Ease-out cubic: a gentler initial kick than the
-// expo-style bezier (which launched too fast), still gliding to rest.
-// Matches PAGER_EASING in SpotSheet.tsx (not imported to avoid a require
-// cycle).
-const SETTLE_EASING = Easing.bezier(0.33, 1, 0.68, 1);
-
-// How far ahead (in seconds) the release velocity is projected when picking
-// the page to settle on - the standard momentum-pager heuristic. 0.25s means
-// a light ~600px/s flick alone is enough to flip a page.
-const VELOCITY_PROJECTION = 0.25;
-
-// Fraction of a page the projected position must cross to flip.
-const FLIP_FRACTION = 0.35;
+const SETTLE_EASING = Easing.bezier(...SETTLE_BEZIER);
 
 interface SpotSheetExpandedProps {
   group: SpotGroup;
@@ -85,43 +80,40 @@ export function SpotSheetExpanded({
   const startX = useSharedValue(0);
   const swipe = Gesture.Pan()
     .enabled(multi)
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-15, 15])
+    .activeOffsetX([-SWIPE_ACTIVE_OFFSET_X, SWIPE_ACTIVE_OFFSET_X])
+    .failOffsetY([-SWIPE_FAIL_OFFSET_Y, SWIPE_FAIL_OFFSET_Y])
     .onStart(() => {
       "worklet";
       startX.value = trackX.value;
     })
     .onChange((e) => {
       "worklet";
-      const min = -(count - 1) * screenWidth;
-      const max = 0;
-      const raw = startX.value + e.translationX;
-      if (raw > max) trackX.value = max + (raw - max) / 3;
-      else if (raw < min) trackX.value = min + (raw - min) / 3;
-      else trackX.value = raw;
+      trackX.value = rubberBandTrack(
+        startX.value + e.translationX,
+        -(count - 1) * screenWidth,
+        0,
+      );
     })
     .onEnd((e) => {
       "worklet";
-      // Offset from the current page (+ = toward the next photo), with the
-      // release velocity projected ahead so a light flick flips the page.
-      const projectedOffset =
-        -trackX.value - index * screenWidth - e.velocityX * VELOCITY_PROJECTION;
-      let target = index;
-      if (projectedOffset > screenWidth * FLIP_FRACTION) target = index + 1;
-      else if (projectedOffset < -screenWidth * FLIP_FRACTION) target = index - 1;
-      target = Math.min(count - 1, Math.max(0, target));
-
-      // Duration scales with the remaining distance so short settles stay
-      // snappy and full-page ones don't feel rushed.
+      const target = settleTargetIndex(
+        trackX.value,
+        index,
+        e.velocityX,
+        screenWidth,
+        count,
+      );
       const remaining = Math.abs(-target * screenWidth - trackX.value);
-      const duration = 240 + Math.min(220, (remaining / screenWidth) * 220);
 
       // Commit the index only once the settle lands: firing it at release
       // triggered a React re-render (page window shift, chrome update) right
       // as the settle started, hitching its first frames.
       trackX.value = withTiming(
         -target * screenWidth,
-        { duration, easing: SETTLE_EASING },
+        {
+          duration: settleDurationMs(remaining, screenWidth),
+          easing: SETTLE_EASING,
+        },
         (finished) => {
           if (finished && target !== index) runOnJS(onSwipeToIndex)(target);
         },
