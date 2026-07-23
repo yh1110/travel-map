@@ -9,6 +9,7 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
   runOnJS,
+  useSharedValue,
   withSpring,
   type SharedValue,
 } from "react-native-reanimated";
@@ -24,12 +25,17 @@ import { CloseIcon } from "./SpotSheetIcons";
 const STRIP_MAX = 4;
 
 // Matches PAGER_SPRING in SpotSheet.tsx (not imported to avoid a require
-// cycle between the sheet and its content components).
+// cycle between the sheet and its content components). Stiff and clamped:
+// a fast decisive snap (YouTube-Shorts-like), no wobble.
 const SETTLE_SPRING = {
-  damping: 30,
-  stiffness: 280,
+  damping: 45,
+  stiffness: 450,
   overshootClamping: true,
 };
+
+// How far ahead (in seconds) the release velocity is projected when picking
+// the page to settle on - the standard momentum-pager heuristic.
+const VELOCITY_PROJECTION = 0.12;
 
 interface SpotSheetExpandedProps {
   group: SpotGroup;
@@ -67,36 +73,42 @@ export function SpotSheetExpanded({
   const multi = count > 1;
 
   // Whole-screen swipe between the photos of this location: the pager track
-  // follows the finger continuously (rubber-banding past the ends), then
-  // settles on the nearest page - or the next one on a fast flick. Activates
-  // only on a clearly horizontal drag so it doesn't fight the sheet's own
-  // vertical pan (which this fails via failOffsetY).
+  // follows the finger continuously from WHEREVER it currently is (so a new
+  // swipe that interrupts a settle animation picks up seamlessly instead of
+  // jumping to the page origin), rubber-bands past the ends, and settles on
+  // the page nearest to the projected momentum. Activates only on a clearly
+  // horizontal drag so it doesn't fight the sheet's own vertical pan (which
+  // this fails via failOffsetY).
+  const startX = useSharedValue(0);
   const swipe = Gesture.Pan()
     .enabled(multi)
     .activeOffsetX([-15, 15])
     .failOffsetY([-15, 15])
+    .onStart(() => {
+      "worklet";
+      startX.value = trackX.value;
+    })
     .onChange((e) => {
       "worklet";
-      let tx = e.translationX;
-      if ((index === 0 && tx > 0) || (index === count - 1 && tx < 0)) {
-        tx = tx / 3;
-      }
-      trackX.value = -index * screenWidth + tx;
+      const min = -(count - 1) * screenWidth;
+      const max = 0;
+      const raw = startX.value + e.translationX;
+      if (raw > max) trackX.value = max + (raw - max) / 3;
+      else if (raw < min) trackX.value = min + (raw - min) / 3;
+      else trackX.value = raw;
     })
     .onEnd((e) => {
       "worklet";
-      let target = index;
-      if (
-        (e.translationX < -screenWidth * 0.25 || e.velocityX < -600) &&
-        index < count - 1
-      ) {
-        target = index + 1;
-      } else if (
-        (e.translationX > screenWidth * 0.25 || e.velocityX > 600) &&
-        index > 0
-      ) {
-        target = index - 1;
-      }
+      const projected = -trackX.value - e.velocityX * VELOCITY_PROJECTION;
+      // One page per swipe (Shorts-like), and never onto a page the ±1
+      // window hasn't mounted yet.
+      const target = Math.min(
+        count - 1,
+        Math.max(
+          0,
+          Math.min(index + 1, Math.max(index - 1, Math.round(projected / screenWidth))),
+        ),
+      );
       trackX.value = withSpring(-target * screenWidth, {
         ...SETTLE_SPRING,
         velocity: e.velocityX,
